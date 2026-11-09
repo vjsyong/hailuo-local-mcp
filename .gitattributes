@@ -1,0 +1,7 @@
+# Keep line endings identical on Windows, macOS and Linux student machines.
+* text=auto eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.txt text eol=lf

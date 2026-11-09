@@ -1,0 +1,18 @@
+# --- Secrets: NEVER commit these ---
+api-key.txt
+mcp.local.json
+*.bak
+mcp.json.bak.*
+
+# --- Runtime output ---
+videos/
+usage.jsonl
+.selftest-*
+
+# --- Local environment ---
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
