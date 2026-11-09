@@ -23,8 +23,14 @@ TC3 signing, no `user` field.
 `api-key.txt` is the single source of truth. It is gitignored, created on first
 setup from `api-key.example.txt`, and read by `server.py` on **every tool call** —
 so pasting or rotating a key needs no restart and no second setup run. There is
-deliberately **no** environment-variable key override: an env var would be a
-second place a key could hide and a second thing to get wrong.
+deliberately **no** environment-variable key or endpoint override: an env var
+would be a second place a key could hide and a second thing to get wrong.
+`setup_mcp.py` prints a warning if any legacy `TOKENHUB_*` variable is set —
+those variables are ignored.
+
+`api-key.example.txt` **is** tracked and is only a placeholder. Never put a real
+key in it. `setup_mcp.py --install` installs a local pre-commit hook that blocks
+committing either file.
 
 ---
 
@@ -34,50 +40,84 @@ second place a key could hide and a second thing to get wrong.
 2. Tell your WorkBuddy agent: **"Set up the video MCP in this repo."**
    The agent creates `api-key.txt` for you and installs everything.
 3. Open `api-key.txt` and paste **your group's single API key** on line 1 —
-   plain text, no quotes, no `Bearer ` prefix. Save.
-4. In WorkBuddy: **Connectors** (left sidebar) → **Custom Connector**
+   plain text, UTF-8, no quotes, no `Bearer ` prefix. Save.
+4. Run the **no-cost** key check (`check_key.py`) — or ask your agent to run it.
+   It makes one task lookup, creates no video, and spends no credit.
+5. In WorkBuddy: **Connectors** (left sidebar) → **Custom Connector**
    (top-right) → click **Trust** on `hailuo-video`.
-5. Ask: *"Generate a 4 second video of a cat sitting on a desk."*
+6. **START A NEW CHAT SESSION.** Tool lists load when a session starts; the
+   connector does not activate automatically.
+7. Ask: *"Generate a 4 second video of a cat sitting on a desk."*
 
 Pasting the key is the only manual step. You can do it before or after step 2 —
 both orders work, because the server reads the file on every call.
+
+**One machine per group:** each group needs its own OS account **and** its own
+clone of this repo. The server name (`hailuo-video`), `videos/`, `usage.jsonl`
+and `pending.json` are per-clone, so two groups sharing one account/clone will
+overwrite each other's connector entry and key file.
 
 ---
 
 ## For the agent — do exactly this
 
-Run from the repository root with the machine's default Python 3.11+:
+Requires **Python 3.10+** (3.11+ recommended). Run from the repository root:
 
 ```bash
-python setup_mcp.py --install --verify-key
+# Windows
+python setup_mcp.py --install --verify-key        # or: py -3.11 setup_mcp.py --install --verify-key
+
+# macOS / Linux  (stock macOS has NO `python`, only `python3`)
+python3 setup_mcp.py --install --verify-key
 ```
+
+Never use bare `python` on macOS/Linux. Setup refuses to run on Python < 3.10
+with a clear message rather than a cryptic pip-resolver error.
 
 Setup is **single-pass**: it completes even if `api-key.txt` does not exist yet
 or still holds the placeholder. It will:
 
 1. Create `api-key.txt` from `api-key.example.txt` if missing.
-2. Create `.venv/` and install `requirements.txt` into it.
-3. Verify `mcp`, `httpx`, `tokenhub`, and `server` import cleanly.
+2. Create `.venv/` and install `requirements.txt` — only if imports are not
+   already satisfied (re-runs are offline-safe). First run needs PyPI access.
+   Offline classroom: put wheels in a folder and set `HAILUO_WHEELHOUSE` to it;
+   setup then installs with `--no-index --find-links`.
+3. Verify `mcp`, `httpx`, `tokenhub`, `server`, `keyfile` import cleanly.
 4. Write `mcp.local.json` with a ready-to-paste STDIO config using **absolute
    paths** to this machine's `.venv` python and `server.py`.
-5. Merge that block into `~/.workbuddy-ai/mcp.json`, preserving all other
-   servers and backing up the old file as `mcp.json.bak.<timestamp>`.
-6. Make ONE no-cost TokenHub auth probe — **skipped cleanly** if the key has not
-   been pasted yet (no network call, no credit spent).
+5. Merge that block into **both** `~/.workbuddy-ai/mcp.json` and
+   `~/.workbuddy/mcp.json` (the latter only when that folder exists), preserving
+   all other servers, tolerating malformed configs, backing up with a
+   collision-proof name, and reading the file back to verify the entry landed.
+6. Install a local pre-commit guard against committing the key.
+7. Make ONE no-cost TokenHub auth probe — **skipped cleanly** if the key has not
+   been pasted yet. A rejected/inconclusive probe **never fails setup**.
 
-Then tell the student to paste their one key (if they have not already) and to
-click **Trust** on `hailuo-video`. The connector does not activate automatically.
+Other commands:
 
-If setup reported the key was missing, do **not** attempt a probe or a
-generation. Do not re-run setup after the paste — it is unnecessary. To confirm
-the key later, run the no-cost checker:
+```bash
+python3 setup_mcp.py --check          # read-only status of venv, key, both config entries
+python3 setup_mcp.py --uninstall      # remove ONLY the hailuo-video entry (with backup)
+python3 setup_mcp.py                  # dry run: builds venv + mcp.local.json, no global install
+```
+
+Then tell the student to paste their one key (if they have not already), run the
+no-cost checker, click **Trust**, and **start a new chat session**. Do not
+re-run setup after the paste — it is unnecessary. Setup prints its real status
+(`INSTALL WRITTEN -- activation is NOT complete`, plus an explicit key status);
+it never claims the connector is live.
+
+No-cost checker (run before any generation):
 
 ```bash
 .venv/Scripts/python.exe check_key.py    # Windows
 .venv/bin/python check_key.py            # macOS / Linux
 ```
 
-Optional offline verification (zero credit):
+Only `HTTP 400` means **KEY VALID**. `401/403` = invalid key, `429` = throttled,
+`5xx` / anything else = **INCONCLUSIVE** — never assume the key works.
+
+Optional offline verification (zero credit, no TokenHub calls):
 
 ```bash
 .venv/Scripts/python.exe selftest.py     # Windows
@@ -93,14 +133,21 @@ Optional offline verification (zero credit):
   `api-key.txt` into any file, commit, chat message, or config.
 - **Never** put the key into `mcp.json`, `mcp.local.json`, an `env` block, or any
   persisted environment variable. The server reads it from `api-key.txt`.
-- **Never** `git add` / commit `api-key.txt`, `mcp.local.json`, `videos/`,
-  `usage.jsonl`, `.venv/`, or any `*.bak` file. Check `git status --short` first.
+- **Never** `git add` / commit `api-key.txt`, `api-key.example.txt` edits,
+  `mcp.local.json`, `videos/`, `usage.jsonl`, `pending.json`, `.venv/`, or any
+  `*.bak` file. Check `git status --short` first.
+- **Never resubmit a paid job.** If any result has `resubmit_allowed: false`
+  (with `pending: true`, `recoverable: true`, or `status: poll_interrupted`),
+  call `check_video` with its `task_id`. Never call `generate_video` again for
+  that prompt. Use `recent_tasks` if the id was lost.
 - Do not change the defaults in `tokenhub.py` — model `minimax-video-h3`,
   cheapest settings 4s / 768P / 16:9.
 - If the student pastes a key into chat instead, write it directly to
   `api-key.txt` without repeating it back, then continue. Do not guess,
   generate, or fetch a key.
 - `server.py` must never write to stdout: stdout carries the JSON-RPC stream.
+  The MCP SDK v2 claims fd 1 and diverts stray output to stderr; do **not** add
+  `sys.stdout = sys.stderr` — that would make the SDK serve MCP over stderr.
 
 ### Generated MCP config shape
 
@@ -108,14 +155,15 @@ Optional offline verification (zero credit):
 {
   "mcpServers": {
     "hailuo-video": {
-      "command": "C:\\...\\hailuo-local-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["C:\\...\\hailuo-local-mcp\\server.py"]
+      "command": "C:/.../hailuo-local-mcp/.venv/Scripts/python.exe",
+      "args": ["C:/.../hailuo-local-mcp/server.py"]
     }
   }
 }
 ```
 
-No `env`, no `type`, no `url`, no headers — STDIO servers use `command`/`args`.
+No `env`, no `url`, no headers — STDIO servers use `command`/`args`. Paths use
+forward slashes so they are safe to copy out of JSON on Windows.
 
 ---
 
@@ -123,31 +171,44 @@ No `env`, no `type`, no `url`, no headers — STDIO servers use `command`/`args`
 
 | Tool | Purpose |
 |---|---|
-| `video_capabilities` | Model, ranges, and `credentials_required: 1` / `key_source` |
+| `video_capabilities` | Model, ranges, `credentials_required: 1`, `key_source`, pending-job count |
 | `generate_video` | One call: submit → poll → download → return local `video_path` |
-| `submit_video` | Submit only, returns `task_id` (use if the client times out) |
+| `submit_video` | Submit only, returns `task_id` (safest path on slow/unreliable clients) |
 | `check_video` | Poll a `task_id`, returns `video_path` when done |
+| `recent_tasks` | Recover a `task_id` lost to a timeout or network error |
 
-Generation takes roughly 1–3 minutes. If `generate_video` returns
-`pending=true`, call `check_video` with the returned `task_id`.
+Generation takes roughly 1–3 minutes; `generate_video` waits at most 120s by
+default so a client-side timeout cannot swallow the result. If it returns
+`pending: true`, call `check_video` with the returned `task_id`. Completed jobs
+are idempotent: repeated `check_video` returns `reused: true` and the same MP4,
+never a second download or a duplicate log record.
 
-`videos/` is cleaned after 72 hours. A per-machine daily cap (default 60) is
-enforced via `usage.jsonl`; override with `MAX_VIDEOS_PER_DAY`.
+`videos/` is cleaned after 72 hours (only files this server created). A
+per-machine daily cap of 60 submits is enforced via `usage.jsonl`; the log is
+pruned automatically. Every tool returns a JSON dict — no exception ever
+reaches the client as a traceback, and all error text is redacted of keys and
+signed URLs.
 
 ---
 
 ## For the teacher — distributing this
 
-1. `git init`, commit, and push this repo to a private classroom org.
+1. Commit and push this repo to a private classroom org. Confirm with the
+   WorkBuddy build you use that external edits to `mcp.json` are honoured
+   (documented as restored in WorkBuddy 5.6.0+); if not, students paste the
+   block from `mcp.local.json` into the MCP settings UI manually.
 2. Give each of the 5 groups **its own single** TokenHub API key through a
    separate channel (LMS, email, in person) — never in the repo, never in an
-   issue. One group → one key.
-3. Students clone; each pastes only their own key.
+   issue. One group → one key → one machine/OS account → one clone.
+3. Students clone, run the one setup command, paste only their own key.
 4. To revoke a group: rotate/delete that one key in the Tencent Cloud console.
    The student pastes the replacement into `api-key.txt`; no restart needed.
-5. Because keys live on student machines, treat them as disposable and scope
-   each to one group. If you need hard central quota control, use the hosted
-   MCP design instead.
+5. Keys live on student machines, so treat them as disposable and scope each to
+   one group. If you need hard central quota control, use the hosted MCP design
+   instead.
+6. First classroom run needs PyPI access for `mcp==2.3.0` / `httpx==0.28.1`.
+   For a locked-down lab, pre-build a wheelhouse per OS and set
+   `HAILUO_WHEELHOUSE` before setup.
 
 ---
 
@@ -156,9 +217,15 @@ enforced via `usage.jsonl`; override with `MAX_VIDEOS_PER_DAY`.
 | Symptom | Fix |
 |---|---|
 | "No TokenHub API key configured" | Paste the single key into `api-key.txt`, line 1, no quotes |
+| Key saved as "Unicode" / UTF-16 | Re-save as UTF-8 (no BOM); `keyfile.py` reports this explicitly |
 | `check_key.py` says `INVALID KEY` (401/403) | Wrong/expired key; re-paste — do not add a second credential |
-| Connector shows as unavailable | Trust it: Connectors → Custom Connector → Trust |
-| `generate_video` times out client-side | Use `submit_video`, then `check_video` with the `task_id` |
-| Config lost after moving the folder | Re-run `python setup_mcp.py --install` to regenerate absolute paths |
+| `check_key.py` says `INCONCLUSIVE` | Network/proxy/TokenHub outage; setup is fine, retry before generating |
+| `command not found: python` | macOS/Linux: use `python3 setup_mcp.py --install --verify-key` |
+| `pip` / TLS / venv error on first run | Needs PyPI + `python3-venv`; or use `HAILUO_WHEELHOUSE` offline wheels |
+| Connector shows as unavailable | Trust it: Connectors → Custom Connector → Trust, then START A NEW CHAT SESSION |
+| `generate_video` times out client-side | It returns a `task_id`; call `check_video`. Do NOT resubmit. Use `submit_video` next time |
+| Lost the `task_id` | Call `recent_tasks`, then `check_video` with that id |
+| Config lost after moving the folder | Re-run `python3 setup_mcp.py --install` to regenerate absolute paths |
+| Two groups on one computer | Not supported: use separate OS accounts and separate clones |
 | `ModuleNotFoundError: mcp` | Run with `.venv` python, or re-run `setup_mcp.py` |
 | Nothing happens / JSON parse errors | Something printed to stdout — stdio servers must keep stdout clean |

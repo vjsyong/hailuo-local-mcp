@@ -1,6 +1,8 @@
 # --- Secrets: NEVER commit these ---
 # api-key.txt is the ONE file each student edits. It is created on first setup
 # from api-key.example.txt and must never be tracked: it holds a real API key.
+# api-key.example.txt IS tracked, is just a placeholder, and must never hold a
+# real key (a pre-commit guard installed by setup_mcp.py --install enforces this).
 api-key.txt
 mcp.local.json
 *.bak
@@ -9,7 +11,12 @@ mcp.json.bak.*
 # --- Runtime output ---
 videos/
 usage.jsonl
+usage.jsonl.tmp
+pending.json
+pending.json.tmp
+*.mp4.part
 .selftest-*
+.sim-*
 
 # --- Local environment ---
 .venv/

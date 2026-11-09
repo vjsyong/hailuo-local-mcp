@@ -1,5 +1,5 @@
 {
-  "_comment": "Shape only. Do NOT paste this file. Run `python setup_mcp.py --install` and it writes the real absolute paths into ~/.workbuddy-ai/mcp.json and into mcp.local.json.",
+  "_comment": "SHAPE ONLY - do NOT paste this file. Run setup_mcp.py --install (Windows: python, macOS/Linux: python3). It writes the real absolute paths into ~/.workbuddy-ai/mcp.json, into ~/.workbuddy/mcp.json when that folder exists, and into mcp.local.json. No key, no env, no headers.",
   "mcpServers": {
     "hailuo-video": {
       "command": "ABSOLUTE_PATH_TO_THIS_REPO/.venv/Scripts/python.exe",
