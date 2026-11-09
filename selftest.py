@@ -390,6 +390,32 @@ def test_corrupt_pending_and_probe_classification() -> None:
         check_key.tokenhub.probe_key = original_probe
 
 
+def test_macos_posix_branch() -> None:
+    """The repo's ONLY OS branch must produce a POSIX venv python on macOS."""
+    from unittest.mock import patch
+
+    with patch.object(setup_mcp.os, "name", "posix"):
+        posix_python = setup_mcp.venv_python().as_posix()
+        block = setup_mcp.build_block()["hailuo-video"]
+    assert posix_python.endswith("/.venv/bin/python"), posix_python
+    assert block["command"].endswith("/.venv/bin/python"), block
+    assert block["args"][0].endswith("/server.py"), block
+    for forbidden in ("env", "headers", "url", "type"):
+        assert forbidden not in block, f"config must not carry {forbidden}"
+    ok("macOS/Linux branch -> .venv/bin/python, no env/url/headers")
+
+    for name in ("server.py", "tokenhub.py", "keyfile.py", "check_key.py"):
+        src = (BASE / name).read_text(encoding="utf-8")
+        for forbidden in ("msvcrt", "win32api", "pywintypes", "os.startfile",
+                          "CREATE_NO_WINDOW", "shell=True"):
+            assert forbidden not in src, f"{name} contains Windows-only {forbidden}"
+    ok("runtime modules contain no Windows-only APIs")
+
+    assert setup_mcp.PRECOMMIT_HOOK.startswith("#!/bin/sh\n")
+    assert "eol=lf" in (BASE / ".gitattributes").read_text(encoding="utf-8")
+    ok("pre-commit hook is POSIX /bin/sh and git enforces LF line endings")
+
+
 def unit_tests() -> None:
     print("--- layer 1: unit / static regression tests ---")
     test_single_key_invariant()
@@ -400,6 +426,7 @@ def unit_tests() -> None:
     test_tokenhub_response_shapes()
     test_malformed_mcp_configs()
     test_corrupt_pending_and_probe_classification()
+    test_macos_posix_branch()
 
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,39 @@ python setup_mcp.py --install --verify-key
 python3 setup_mcp.py --install --verify-key
 ```
 
+### macOS — read this first
+
+**Yes, it runs on macOS (Intel and Apple Silicon).** The only thing that will
+actually trip students up is Python: macOS has **no `python`**, and the `python3`
+that comes with Xcode Command Line Tools is **Python 3.9**, which is too old.
+Setup will refuse it with a clear message. Install 3.10+ once per machine:
+
+```bash
+# Option A — Homebrew
+brew install python@3.12
+python3 --version                 # must print 3.10 or newer
+
+# Option B — official installer: https://www.python.org/downloads/macos/
+#            (then check `python3 --version`)
+
+xcode-select --install            # only needed if pip has to compile a wheel
+python3 setup_mcp.py --install --verify-key
+```
+
+Other Mac-specific notes:
+
+- Edit `api-key.txt` in a **plain-text** editor (VS Code, BBEdit, `nano`), not
+  TextEdit in its default Rich Text / smart-quotes mode. A curly-quote or UTF-16
+  save is rejected with an explicit error, so a bad paste fails safely instead of
+  sending a broken key.
+- Config is written to `~/.workbuddy-ai/mcp.json` (and `~/.workbuddy/mcp.json`
+  if that folder exists). Setup generates `.venv/bin/python` paths automatically;
+  `mcp.local.json` is a paste-ready fallback.
+- Apple Silicon is fine: the only compiled dependencies (`pydantic-core`,
+  `cryptography`) publish macOS arm64 wheels.
+- Paths with spaces are safe (the MCP SDK spawns with an argument array, not a
+  shell), but cloning to a simple path like `~/hailuo-local-mcp` is still safest.
+
 Useful commands:
 
 ```bash

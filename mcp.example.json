@@ -1,5 +1,6 @@
 {
   "_comment": "SHAPE ONLY - do NOT paste this file. Run setup_mcp.py --install (Windows: python, macOS/Linux: python3). It writes the real absolute paths into ~/.workbuddy-ai/mcp.json, into ~/.workbuddy/mcp.json when that folder exists, and into mcp.local.json. No key, no env, no headers.",
+  "_note_macos_linux": "On macOS/Linux setup generates ABSOLUTE_PATH_TO_THIS_REPO/.venv/bin/python instead of .venv/Scripts/python.exe. macOS needs Python 3.10+ (Xcode's python3 is 3.9): install from python.org or `brew install python@3.12`.",
   "mcpServers": {
     "hailuo-video": {
       "command": "ABSOLUTE_PATH_TO_THIS_REPO/.venv/Scripts/python.exe",

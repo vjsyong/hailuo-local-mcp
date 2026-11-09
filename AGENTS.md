@@ -74,6 +74,16 @@ python3 setup_mcp.py --install --verify-key
 Never use bare `python` on macOS/Linux. Setup refuses to run on Python < 3.10
 with a clear message rather than a cryptic pip-resolver error.
 
+**macOS prerequisite (the one real blocker):** the `python3` shipped by Xcode
+Command Line Tools is Python **3.9**, so setup will refuse it. Install Python
+3.10+ first — `brew install python@3.12` or the installer from
+<https://www.python.org/downloads/macos/> — then verify `python3 --version`
+before running setup. If a wheel ever needs compiling, `xcode-select --install`.
+Apple Silicon is supported. Tell students to edit `api-key.txt` in a plain-text
+editor (VS Code, BBEdit, `nano`), **not** TextEdit's default Rich Text mode with
+smart quotes; `keyfile.py` rejects UTF-16 and non-ASCII keys with an explicit
+message, so this fails safely.
+
 Setup is **single-pass**: it completes even if `api-key.txt` does not exist yet
 or still holds the placeholder. It will:
 
@@ -151,6 +161,8 @@ Optional offline verification (zero credit, no TokenHub calls):
 
 ### Generated MCP config shape
 
+Windows:
+
 ```json
 {
   "mcpServers": {
@@ -162,8 +174,23 @@ Optional offline verification (zero credit, no TokenHub calls):
 }
 ```
 
+macOS / Linux (setup picks this branch automatically via `os.name`):
+
+```json
+{
+  "mcpServers": {
+    "hailuo-video": {
+      "command": "/Users/student/hailuo-local-mcp/.venv/bin/python",
+      "args": ["/Users/student/hailuo-local-mcp/server.py"]
+    }
+  }
+}
+```
+
 No `env`, no `url`, no headers — STDIO servers use `command`/`args`. Paths use
-forward slashes so they are safe to copy out of JSON on Windows.
+forward slashes so they are safe to copy out of JSON on Windows and are already
+native on macOS/Linux. The MCP SDK spawns `[command, *args]` without a shell, so
+paths containing spaces are fine.
 
 ---
 
@@ -221,7 +248,9 @@ signed URLs.
 | `check_key.py` says `INVALID KEY` (401/403) | Wrong/expired key; re-paste — do not add a second credential |
 | `check_key.py` says `INCONCLUSIVE` | Network/proxy/TokenHub outage; setup is fine, retry before generating |
 | `command not found: python` | macOS/Linux: use `python3 setup_mcp.py --install --verify-key` |
-| `pip` / TLS / venv error on first run | Needs PyPI + `python3-venv`; or use `HAILUO_WHEELHOUSE` offline wheels |
+| `SETUP INCOMPLETE: Python 3.10+ is required` (macOS) | Xcode CLT ships 3.9: `brew install python@3.12` or python.org installer; verify `python3 --version`, then re-run |
+| "non-ASCII characters" / "looks like UTF-16" | TextEdit saved RTF/smart quotes or UTF-16; re-paste in VS Code / `nano`, save plain UTF-8 on line 1 |
+| `pip` / TLS / venv error on first run | Needs PyPI + `python3-venv`; macOS: `xcode-select --install`; or use `HAILUO_WHEELHOUSE` offline wheels |
 | Connector shows as unavailable | Trust it: Connectors → Custom Connector → Trust, then START A NEW CHAT SESSION |
 | `generate_video` times out client-side | It returns a `task_id`; call `check_video`. Do NOT resubmit. Use `submit_video` next time |
 | Lost the `task_id` | Call `recent_tasks`, then `check_video` with that id |

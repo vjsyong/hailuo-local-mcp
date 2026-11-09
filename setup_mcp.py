@@ -145,8 +145,9 @@ def ensure_venv() -> None:
             subprocess.check_call([sys.executable, "-m", "venv", str(VENV_DIR)], cwd=str(BASE))
         except (subprocess.CalledProcessError, OSError) as exc:
             raise SetupError(
-                "Could not create .venv. Install Python's venv module "
-                "(Ubuntu/Debian: sudo apt install python3-venv) and re-run setup."
+                "Could not create .venv. Use a Python 3.10+ build that includes venv "
+                "(Ubuntu/Debian: sudo apt install python3-venv; macOS: install Python from "
+                "python.org or Homebrew, then `xcode-select --install`) and re-run setup."
             ) from exc
     if _imports_ok(py):
         print("[ok] .venv ready (dependencies already installed)")
@@ -321,6 +322,10 @@ def main() -> int:
     if sys.version_info < MIN_PYTHON:
         print(f"SETUP INCOMPLETE: Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ is required "
               f"(found {sys.version.split()[0]}). Install a newer Python and re-run.")
+        if sys.platform == "darwin":
+            print("macOS: Xcode Command Line Tools ship Python 3.9 only. Install Python 3.10+ "
+                  "from https://www.python.org/downloads/macos/ or `brew install python@3.12`, "
+                  "then run `python3 setup_mcp.py --install --verify-key` again.")
         return 1
 
     ap = argparse.ArgumentParser(description="Set up the local Hailuo video MCP server.")
