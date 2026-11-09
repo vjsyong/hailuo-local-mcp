@@ -4,10 +4,14 @@ This is the version that runs ON THE STUDENT'S COMPUTER. WorkBuddy launches it
 as a subprocess and talks MCP over stdin/stdout -- no host, no port, no public
 URL, no group tokens, no central server.
 
-The ONLY thing a student does is paste their single TokenHub API key into
-`api-key.txt` next to this file. The key is never in the MCP config, never in
-git, and never sent anywhere except as `Authorization: Bearer ...` to the
-TokenHub endpoint.
+Each student group needs EXACTLY ONE credential: its single TokenHub API key
+pasted as the first line of `api-key.txt` next to this file. There is no second
+key, no group token, no SecretId/SecretKey, no `user` field, and no environment
+variable override. `api-key.txt` is the single source of truth and is gitignored.
+
+The key is never in the MCP config, never in git, and never sent anywhere except
+as one `Authorization: Bearer ...` header to the TokenHub endpoint. It is read
+on every tool call, so pasting or rotating it never requires a restart.
 
 Finished videos are written to `videos/<uuid>.mp4` in this directory and the
 tool returns a local absolute `video_path`. There is no URL to serve.
@@ -48,13 +52,21 @@ POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL_SECONDS", "5"))
 
 _usage_lock = threading.Lock()
 PLACEHOLDER_MARKERS = ("PASTE_", "YOUR_API_KEY", "REPLACE_WITH", "EXAMPLE")
+KEY_SOURCE = "api-key.txt (single file, one key)"
+CREDENTIALS_REQUIRED = 1
 
 
 def load_api_key() -> str:
-    """Read the key on every call so pasting it does not require a restart."""
-    key = os.environ.get("TOKENHUB_API_KEY", "").strip()
-    if not key and KEY_FILE.exists():
-        key = KEY_FILE.read_text(encoding="utf-8").strip()
+    """Return the ONE key from api-key.txt. No env override, no second source.
+
+    Deliberately there is no environment-variable fallback: a group needs
+    exactly one credential in exactly one place. Reading the file on every
+    call means pasting (or rotating) the key needs no restart.
+    """
+    key = ""
+    if KEY_FILE.exists():
+        lines = KEY_FILE.read_text(encoding="utf-8").strip().splitlines()
+        key = lines[0].strip() if lines else ""
     if not key or any(marker in key.upper() for marker in PLACEHOLDER_MARKERS):
         raise RuntimeError(
             "No TokenHub API key configured. Paste your single API key into "
@@ -158,7 +170,9 @@ mcp_server = MCPServer(
         "TokenHub. Call generate_video with a scene description; it returns "
         "video_path, a local absolute path to the finished MP4. Generation takes "
         "1-3 minutes. If it returns pending=true, call check_video with that task_id. "
-        "The API key is read from api-key.txt in the server directory."
+        "Exactly one credential is needed: the group's single API key in "
+        "api-key.txt beside the server. It is read on every call, so pasting it "
+        "needs no restart. Never ask the user for a second key or token."
     ),
 )
 
@@ -175,7 +189,9 @@ def video_capabilities() -> dict[str, Any]:
         "transport": "stdio (local)",
         "key_configured": key_state == "configured",
         "key_status": key_state,
+        "key_source": KEY_SOURCE,
         "key_file": str(KEY_FILE),
+        "credentials_required": CREDENTIALS_REQUIRED,
         "model": tokenhub.MODEL,
         "also_available": tokenhub.MODEL_H3_MAX,
         "base_url": tokenhub.BASE_URL,

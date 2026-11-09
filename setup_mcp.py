@@ -2,20 +2,29 @@
 
 Run with any Python 3.11+ (stdlib only -- this script needs no dependencies):
 
-    python setup_mcp.py                 # set up + write mcp.local.json (safe)
-    python setup_mcp.py --install       # also merge into ~/.workbuddy-ai/mcp.json
-    python setup_mcp.py --check         # just validate this install
-    python setup_mcp.py --verify-key    # also make one no-cost TokenHub auth probe
+    python setup_mcp.py --install --verify-key   # the command an agent should run
+    python setup_mcp.py --install               # same, without the key probe
+    python setup_mcp.py                         # safe: no global config change
+    python setup_mcp.py --check                 # read-only status report
+
+ONE KEY PER GROUP. Setup is single-pass: it completes fully even before the key
+has been pasted. `server.py` reads `api-key.txt` on every tool call, so the
+student can paste (or rotate) the key at any time with no restart and no second
+setup run.
 
 What it does:
-  1. Creates api-key.txt from the example if missing (student pastes the key there).
+  1. Creates api-key.txt from the example if a fresh clone lacks it. This is the
+     ONLY file a student edits, and it is gitignored.
   2. Creates a private .venv and installs requirements.txt into it.
   3. Verifies the MCP SDK and server import correctly.
   4. Generates a WorkBuddy STDIO MCP config with ABSOLUTE paths (no secrets).
   5. With --install, merges that block into ~/.workbuddy-ai/mcp.json, backing up
      the old file first and preserving every other server.
+  6. With --verify-key, makes ONE no-cost TokenHub auth probe -- skipped cleanly
+     if the key has not been pasted yet.
 
-The API key is NEVER written into any config, printed, or committed.
+The single key is NEVER written into any config, printed, or committed, and
+there is deliberately no environment-variable key override.
 """
 
 from __future__ import annotations
@@ -47,27 +56,33 @@ def venv_python() -> Path:
 
 
 def read_key() -> str | None:
-    key = os.environ.get("TOKENHUB_API_KEY", "").strip()
-    if not key and KEY_FILE.exists():
-        key = KEY_FILE.read_text(encoding="utf-8").strip()
+    """The one key lives in api-key.txt only. No env var, no second source."""
+    if not KEY_FILE.exists():
+        return None
+    lines = KEY_FILE.read_text(encoding="utf-8").strip().splitlines()
+    key = lines[0].strip() if lines else ""
     if not key or any(m in key.upper() for m in PLACEHOLDER_MARKERS):
         return None
     return key
 
 
-def ensure_key() -> bool:
+def ensure_key_file() -> bool:
+    """Create api-key.txt on a fresh clone. Return True if ONE real key is pasted.
+
+    Setup deliberately does NOT abort when the key is missing: everything else
+    can be installed now, and the server picks up the key on its next call.
+    """
     if not KEY_FILE.exists():
         KEY_FILE.write_text(KEY_EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
-        print("[!] Created api-key.txt")
-        print(f"    -> Paste your single TokenHub API key into: {KEY_FILE}")
-        print("    -> Then re-run this command. This is the ONLY manual step.")
-        return False
-    if read_key() is None:
-        print("[!] api-key.txt still contains the placeholder.")
-        print(f"    -> Paste your single TokenHub API key into: {KEY_FILE}")
+        print("[!] Created api-key.txt -- this is the ONLY file you ever edit")
+        print(f"    -> Paste your group's single API key into: {KEY_FILE}")
         print("    -> One line only, no quotes, no 'Bearer ' prefix.")
+    if read_key() is None:
+        print("[!] api-key.txt still has the placeholder (setup continues).")
+        print(f"    -> Paste your group's single API key into {KEY_FILE} when ready.")
+        print("    -> No restart needed: the server reads the file on every call.")
         return False
-    print("[ok] api-key.txt contains a key (value never displayed)")
+    print("[ok] ONE API key found in api-key.txt (value never displayed)")
     return True
 
 
@@ -127,8 +142,9 @@ def verify_key() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Set up the local Hailuo video MCP server.")
     ap.add_argument("--install", action="store_true", help="merge the config into ~/.workbuddy-ai/mcp.json")
-    ap.add_argument("--check", action="store_true", help="validate this install and exit")
-    ap.add_argument("--verify-key", action="store_true", help="run one no-cost TokenHub auth probe")
+    ap.add_argument("--check", action="store_true", help="validate this install and exit (read-only)")
+    ap.add_argument("--verify-key", action="store_true",
+                    help="run one no-cost TokenHub auth probe (skipped if no key pasted yet)")
     args = ap.parse_args()
 
     print(f"Repo      : {BASE}")
@@ -136,15 +152,15 @@ def main() -> int:
     print("-" * 70)
 
     if args.check:
-        ok = ensure_key() and venv_python().exists()
-        if ok:
-            print("[ok] install looks complete")
-        else:
-            print("[!!] install incomplete -- run: python setup_mcp.py --install")
-        return 0 if ok else 1
+        installed = venv_python().exists() and LOCAL_CONFIG.exists()
+        has_key = read_key() is not None
+        print("[ok] install looks complete" if installed
+              else "[!!] install incomplete -- run: python setup_mcp.py --install")
+        print(f"[{'ok' if has_key else '!!'}] key: "
+              f"{'ONE key present in api-key.txt' if has_key else 'paste your single key into api-key.txt'}")
+        return 0 if installed else 1
 
-    if not ensure_key():
-        return 1
+    key_ready = ensure_key_file()
 
     ensure_venv()
     block = build_block()
@@ -166,10 +182,18 @@ def main() -> int:
 
     if args.verify_key:
         print("\n--- no-cost key probe ---")
-        if verify_key() != 0:
+        if not key_ready:
+            print("SKIPPED - no key pasted yet. No network call, no credit spent.")
+            print("After pasting the single key, run:")
+            print("    .venv/Scripts/python.exe check_key.py   (Windows)")
+            print("    .venv/bin/python check_key.py           (macOS / Linux)")
+        elif verify_key() != 0:
             return 1
 
-    print("\nSETUP OK. Ask your agent: 'generate a 4 second video of a cat on a desk'")
+    print("\nSETUP OK. Exactly one key per group, in api-key.txt.")
+    if not key_ready:
+        print("Remaining: paste the single key into api-key.txt (no restart needed).")
+    print("Ask your agent: 'generate a 4 second video of a cat on a desk'")
     return 0
 
 

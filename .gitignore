@@ -1,4 +1,6 @@
 # --- Secrets: NEVER commit these ---
+# api-key.txt is the ONE file each student edits. It is created on first setup
+# from api-key.example.txt and must never be tracked: it holds a real API key.
 api-key.txt
 mcp.local.json
 *.bak

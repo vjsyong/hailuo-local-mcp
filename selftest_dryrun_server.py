@@ -20,6 +20,7 @@ import server  # noqa: E402
 
 DUMP = Path(os.environ["SELFTEST_DUMP"])
 VIDEO_DIR = Path(os.environ["SELFTEST_VIDEO_DIR"])
+EXPECTED_KEY = os.environ.get("SELFTEST_EXPECTED_KEY", "")
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Redirect all runtime output into the temp dir, away from the repo.
@@ -28,8 +29,13 @@ server.USAGE_FILE = VIDEO_DIR / "usage.jsonl"
 
 
 def fake_submit(api_key, payload):
+    # Record a boolean only -- never write any key-like value to disk.
     DUMP.write_text(
-        json.dumps({"key_seen": bool(api_key), "payload": payload}, ensure_ascii=False),
+        json.dumps({
+            "key_seen": bool(api_key),
+            "key_matches_file": bool(EXPECTED_KEY) and api_key == EXPECTED_KEY,
+            "payload": payload,
+        }, ensure_ascii=False),
         encoding="utf-8",
     )
     return "DRYRUN-TASK-1"
