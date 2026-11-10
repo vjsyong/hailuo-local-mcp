@@ -6,25 +6,47 @@ This repo lets you generate short videos from a text description inside
 WorkBuddy. **You do not need to run any terminal commands** — your WorkBuddy
 agent does all the setup for you.
 
-**Before you begin:** have this repo open in WorkBuddy, and have the **one API
-key** your teacher gave your group ready. Your key comes from your teacher (LMS,
-email, or in person) — it is never inside this repo.
+**Repo:** <https://github.com/vjsyong/hailuo-local-mcp.git>
+
+**Before you begin:** have the **one API key** your teacher gave your group
+ready. Your key comes from your teacher (LMS, email, or in person) — it is never
+inside this repo. You do **not** need to open or clone the repo yourself: the
+prompt below carries the link, so your agent can fetch it even from a brand-new
+chat where it knows nothing about this project.
 
 ### Copy this into your agent
 
-Copy everything inside the box below and paste it as your **first message** to
-your WorkBuddy agent. That one message kicks off the whole process:
+Copy the **whole block** below and paste it as your **first message** to your
+WorkBuddy agent. It is self-contained: it names the project, embeds the repo and
+runbook links, and drives the install from start to finish.
 
 ```text
-Set up the video MCP in this repo. Read README.md and follow its agent runbook
-exactly, in order.
+Set up the Hailuo video MCP for my student group, end to end. This is a fresh
+chat and you know nothing about the project yet, so use the links below.
 
-I have exactly ONE API key for my group: never ask for a second key, token, or
-other credential, and never print, log, commit, or put my key in a config file.
-Do not generate any video until the free check_key.py probe passes.
+REPO    https://github.com/vjsyong/hailuo-local-mcp.git
+RUNBOOK https://github.com/vjsyong/hailuo-local-mcp/blob/main/README.md
 
-When setup is done, tell me the exact steps I must do myself, then how to ask
-for my first 4-second test video.
+Clone the REPO into this workspace (or use an existing clone), work from its
+root, then read README.md and follow §1 "Agent runbook — do exactly this" in
+order: check the OS and Python version, then run the ONE setup command for this
+machine. Do not invent an install procedure or hand-edit any config file. If the
+clone fails, read the RUNBOOK from the URL instead and tell me I may need repo
+access.
+
+Hard rules — do not break any of these:
+- I have exactly ONE API key. Never ask for a second key, token, SecretId,
+  SecretKey, or any other credential. One key is all this tool needs.
+- Never print, log, commit, or write my key into a config file or chat message.
+  It belongs on line 1 of api-key.txt and nowhere else.
+- Never generate a video until check_key.py reports KEY VALID. Generation spends
+  real credit from my group's allowance.
+- Never resubmit a job that already returned a task_id.
+- Never modify the repo's code to work around a failure. If something breaks,
+  stop and show me the exact output.
+
+When setup is written, tell me the exact steps only I can do, wait for me, and
+then tell me how to ask for my first 4-second test video.
 ```
 
 ### Then you do three things
@@ -57,15 +79,17 @@ Three things worth knowing:
 ## 1. Agent runbook — do exactly this
 
 **This README is the canonical runbook for the student's WorkBuddy agent.** The
-student pastes the kickoff prompt from §0 above; on receiving it (or any
-equivalent request), execute the steps below in order, without improvising.
+student pastes the kickoff prompt from §0 above, which embeds the repo URL — so
+you may have no prior context and must clone first (Step 0). On receiving it (or
+any equivalent request), execute the steps below in order, without improvising.
 [AGENTS.md](AGENTS.md) is the extended reference and design rationale; if the two
 ever disagree, this README wins.
 
 ### Agent quick card
 
 ```text
-TRIGGER         Student pastes the kickoff prompt from §0 (or asks to set up the repo).
+TRIGGER         Student pastes the §0 kickoff prompt. It embeds REPO + RUNBOOK URLs,
+                so you may arrive with ZERO prior context. Clone first (Step 0).
 
 GOAL            Install a local STDIO MCP server that generates MiniMax H3 videos
                 from inside WorkBuddy, using ONE Tencent Cloud TokenHub API key.
@@ -95,8 +119,14 @@ SUCCESS         video_capabilities -> key_configured=true, credentials_required=
 
 ### Step 0 — Orient (read-only, no side effects)
 
-Set `REPO_ROOT` to the directory containing this README. Work from there; do not
-guess a path. Then run:
+**Cold start:** if you arrived from the §0 kickoff prompt, you may have had zero
+prior context. If no clone exists in the workspace, clone
+`https://github.com/vjsyong/hailuo-local-mcp.git` **first**. If the clone is
+blocked (private repo), tell the student they need read access and fall back to
+the RUNBOOK URL in §0. Everything below assumes you are inside the clone.
+
+Set `REPO_ROOT` to the directory containing this README (the clone root). Work
+from there; do not guess a path. Then run:
 
 ```bash
 git status --short                          # must be clean-ish; note untracked files
@@ -486,14 +516,19 @@ one Mac student running the full flow before you distribute to all groups.
 
 > Student agents should **not** act on this section.
 
-1. The repo is pushed — confirm in GitHub Settings that visibility is **private**
-   (a classroom org). Confirm your WorkBuddy build honours external edits to
-   `mcp.json`; if not, students paste the block from
-   `mcp.local.json` into the MCP settings UI manually.
+1. The repo is live at `https://github.com/vjsyong/hailuo-local-mcp.git` and is
+   currently **public**, so the §0 kickoff prompt clones with no sign-in. It holds
+   no credentials, only code and docs. If classroom policy requires a private
+   repo, change visibility in GitHub Settings **and grant every student read
+   access first** — otherwise their agents cannot clone and installation fails.
+   Confirm your WorkBuddy build honours external edits to `mcp.json`; if not,
+   students paste the block from `mcp.local.json` into the MCP settings UI
+   manually.
 2. Give each of the 5 groups **its own single** TokenHub API key via a separate
    channel (LMS, email, in person) — never in the repo, never in an issue.
-3. Students clone, the agent runs the one setup command, and the student pastes
-   only their own key.
+3. Point students at `README.md` §0 and have them paste that one kickoff prompt.
+   It carries the repo URL, so their agent clones the repo and runs the single
+   setup command itself; the student pastes only their own key.
 4. To revoke a group: rotate/delete that **one** key in the Tencent Cloud
    console. The student pastes the replacement into `api-key.txt` — no restart,
    no second setup.
