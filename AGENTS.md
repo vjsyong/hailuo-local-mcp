@@ -1,5 +1,12 @@
 # Hailuo local video MCP — one key per group
 
+> **Canonical agent runbook: [README.md](README.md) §1 "Agent runbook — do
+> exactly this".** If you are a student's WorkBuddy agent and were asked to set
+> up this repo, execute that section in order. This file is the extended
+> reference (design rationale, exact failure tables, teacher notes); its rules
+> are identical, and **README.md wins** if they ever diverge. Do not improvise a
+> different setup procedure.
+
 This repository installs a **local STDIO MCP server** on each student's
 computer. WorkBuddy launches `server.py` as a subprocess; there is no hosted
 server, no port, no public URL, and no group-token system. The finished MP4 is
@@ -49,8 +56,10 @@ committing either file.
    connector does not activate automatically.
 7. Ask: *"Generate a 4 second video of a cat sitting on a desk."*
 
-Pasting the key is the only manual step. You can do it before or after step 2 —
-both orders work, because the server reads the file on every call.
+`api-key.txt` is the only file a student edits. Pasting can happen before or
+after step 2 — both orders work, because the server reads the file on every
+call. The two remaining manual actions are UI-only: Trust the connector and
+start a new chat session (see README.md §1 Steps 6–7).
 
 **One machine per group:** each group needs its own OS account **and** its own
 clone of this repo. The server name (`hailuo-video`), `videos/`, `usage.jsonl`
@@ -59,7 +68,11 @@ overwrite each other's connector entry and key file.
 
 ---
 
-## For the agent — do exactly this
+## For the agent — condensed reference
+
+The executable, ordered runbook (Step 0 → Step 9, with exact output strings and
+stop/go gates) is **[README.md §1](README.md#1-agent-runbook--do-exactly-this)**.
+The commands and rules below are the same contract in compact form.
 
 Requires **Python 3.10+** (3.11+ recommended). Run from the repository root:
 
