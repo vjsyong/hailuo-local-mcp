@@ -2,8 +2,15 @@
 
 Run with Python 3.10+ (stdlib only -- this script needs no dependencies).
 
-    Windows:          python setup_mcp.py --install --verify-key
-    macOS / Linux:    python3 setup_mcp.py --install --verify-key
+    Preferred (works with NO git and NO system Python on PATH; bootstrap.py
+    finds the repo ZIP and a 3.10+ interpreter, including WorkBuddy's bundled
+    Python):
+        Windows:          python  bootstrap.py --install --verify-key
+        macOS / Linux:    python3 bootstrap.py --install --verify-key
+
+    Direct (only when Python 3.10+ is already on PATH):
+        Windows:          python  setup_mcp.py --install --verify-key
+        macOS / Linux:    python3 setup_mcp.py --install --verify-key
 
 ONE KEY PER GROUP. Setup is single-pass: it completes fully even before the key
 has been pasted. `server.py` reads `api-key.txt` on every tool call, so a
@@ -341,6 +348,9 @@ def main() -> int:
     print(f"Key file  : {KEY_FILE}")
     print(f"Python    : {sys.version.split()[0]}")
     print(f"Config(s) : {', '.join(str(p) for p in config_paths())}")
+    if "workbuddy" in str(Path(sys.executable).resolve()).lower().replace("\\", "/"):
+        print("[!] Using WorkBuddy's bundled Python as the .venv base. If a WorkBuddy")
+        print("    update replaces that Python, re-run bootstrap.py once.")
     print("-" * 70)
     warn_legacy_env()
 

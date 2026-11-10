@@ -18,6 +18,9 @@ pending.json.tmp
 .selftest-*
 .sim-*
 
+# ZIP downloaded by bootstrap.py on a machine with no git
+hailuo-local-mcp.zip
+
 # --- Local environment ---
 .venv/
 env/

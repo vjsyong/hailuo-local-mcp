@@ -7,12 +7,18 @@
 > are identical, and **README.md wins** if they ever diverge. Do not improvise a
 > different setup procedure.
 >
-> **README.md §0 "Students — start here" is student-facing** and holds the exact
-> copy-paste kickoff prompt students send their agent. That prompt embeds the repo
-> URL (`https://github.com/vjsyong/hailuo-local-mcp.git`) and the runbook URL,
-> because a fresh agent has **no prior context** — clone first (README §1 Step 0),
-> then execute §1. Expect that prompt as the trigger. Keep §0 free of agent
-> internals.
+> **README.md §0 "Students, Start here!" is student-facing** and holds the exact
+> copy-paste kickoff prompt students send their agent. That prompt embeds the repo,
+> raw runbook, `bootstrap.py` and ZIP URLs, because a fresh agent has **no prior
+> context** — fetch the code first (README §1 Step 0), then execute §1. Expect
+> that prompt as the trigger. Keep §0 free of agent internals.
+>
+> **Lowest common denominator:** assume the student has **no git and no Python on
+> PATH**. The canonical entry point is `<PY> bootstrap.py --install --verify-key`,
+> where `<PY>` is any Python 3.6+ (including WorkBuddy's own bundled Python).
+> `bootstrap.py` downloads/extracts the ZIP with the stdlib and finds a 3.10+
+> interpreter. Never install git; only a proven-absent Python 3.10+ justifies one
+> human install. See README §1 Steps 0-2 and §7.
 
 This repository installs a **local STDIO MCP server** on each student's
 computer. WorkBuddy launches `server.py` as a subprocess; there is no hosted
@@ -44,7 +50,7 @@ those variables are ignored.
 
 `api-key.example.txt` **is** tracked and is only a placeholder. Never put a real
 key in it. `setup_mcp.py --install` installs a local pre-commit hook that blocks
-committing either file.
+committing either file (skipped on ZIP installs, where there is no `.git`).
 
 ---
 
@@ -53,9 +59,9 @@ committing either file.
 1. Have your group's **one API key** ready. You do not need to clone the repo —
    the kickoff prompt carries the link and your agent fetches it.
 2. Copy the **kickoff prompt** from
-   [README.md §0](README.md#0-students--start-here) and paste it as your first
-   message to your WorkBuddy agent. It clones the repo, creates `api-key.txt`
-   for you, and installs everything.
+   [README.md §0](README.md#0-students-start-here) and paste it as your first
+   message to your WorkBuddy agent. It fetches the repo (ZIP download — no git
+   needed), creates `api-key.txt` for you, and installs everything.
 3. Open `api-key.txt` and paste **your group's single API key** on line 1 —
    plain text, UTF-8, no quotes, no `Bearer ` prefix. Save.
 4. Run the **no-cost** key check (`check_key.py`) — or ask your agent to run it.
@@ -84,24 +90,36 @@ The executable, ordered runbook (Step 0 → Step 9, with exact output strings an
 stop/go gates) is **[README.md §1](README.md#1-agent-runbook--do-exactly-this)**.
 The commands and rules below are the same contract in compact form.
 
-Requires **Python 3.10+** (3.11+ recommended). Run from the repository root:
+**Canonical, lowest-common-denominator command (no git, no Python on PATH):**
 
 ```bash
-# Windows
-python setup_mcp.py --install --verify-key        # or: py -3.11 setup_mcp.py --install --verify-key
-
-# macOS / Linux  (stock macOS has NO `python`, only `python3`)
-python3 setup_mcp.py --install --verify-key
+<PY> bootstrap.py --install --verify-key
 ```
 
-Never use bare `python` on macOS/Linux. Setup refuses to run on Python < 3.10
-with a clear message rather than a cryptic pip-resolver error.
+`<PY>` is **any** Python 3.6+ — `python3`, `python`, `py -3`, or WorkBuddy's own
+bundled Python by absolute path. `bootstrap.py` downloads/extracts the repo ZIP
+with the stdlib when there is no clone, finds a Python 3.10+ (PATH, `py`
+launcher, or WorkBuddy bundled locations), and runs `setup_mcp.py` with it. Run
+`<PY> bootstrap.py --find-python` first as a free read-only probe. Never install
+git; never run a system-level installer without the student's OK.
 
-**macOS prerequisite (the one real blocker):** the `python3` shipped by Xcode
-Command Line Tools is Python **3.9**, so setup will refuse it. Install Python
-3.10+ first — `brew install python@3.12` or the installer from
-<https://www.python.org/downloads/macos/> — then verify `python3 --version`
-before running setup. If a wheel ever needs compiling, `xcode-select --install`.
+Direct setup is valid **only** when Python 3.10+ is already on PATH:
+
+```bash
+python  setup_mcp.py --install --verify-key      # Windows
+python3 setup_mcp.py --install --verify-key      # macOS / Linux
+```
+
+Never use bare `python` on macOS/Linux when calling setup directly. Setup refuses
+to run on Python < 3.10 with a clear message rather than a cryptic pip-resolver
+error.
+
+**macOS Python:** the `python3` shipped by Xcode Command Line Tools is Python
+**3.9** — too old for setup, but fine for *running* `bootstrap.py`. Let
+`bootstrap.py --find-python` look for WorkBuddy's bundled Python or a Homebrew /
+python.org 3.10+ first. Only if it reports that none exists, install Python once
+— `brew install python@3.12` or <https://www.python.org/downloads/macos/> — then
+re-run. If a wheel ever needs compiling, `xcode-select --install`.
 Apple Silicon is supported. Tell students to edit `api-key.txt` in a plain-text
 editor (VS Code, BBEdit, `nano`), **not** TextEdit's default Rich Text mode with
 smart quotes; `keyfile.py` rejects UTF-16 and non-ASCII keys with an explicit
@@ -129,8 +147,9 @@ or still holds the placeholder. It will:
 Other commands:
 
 ```bash
-python3 setup_mcp.py --check          # read-only status of venv, key, both config entries
-python3 setup_mcp.py --uninstall      # remove ONLY the hailuo-video entry (with backup)
+<PY> bootstrap.py --find-python       # free read-only: prints a 3.10+ interpreter
+<PY> bootstrap.py --check             # read-only status of venv, key, both config entries
+<PY> bootstrap.py --uninstall         # remove ONLY the hailuo-video entry (with backup)
 python3 setup_mcp.py                  # dry run: builds venv + mcp.local.json, no global install
 ```
 
@@ -250,7 +269,9 @@ signed URLs.
 2. Give each of the 5 groups **its own single** TokenHub API key through a
    separate channel (LMS, email, in person) — never in the repo, never in an
    issue. One group → one key → one machine/OS account → one clone.
-3. Students clone, run the one setup command, paste only their own key.
+3. Students paste the §0 kickoff prompt; their agent fetches the code (ZIP when
+   git is absent), runs `<PY> bootstrap.py --install --verify-key`, and the
+   student pastes only their own key. Do not send extra install instructions.
 4. To revoke a group: rotate/delete that one key in the Tencent Cloud console.
    The student pastes the replacement into `api-key.txt`; no restart needed.
 5. Keys live on student machines, so treat them as disposable and scope each to
@@ -270,8 +291,11 @@ signed URLs.
 | Key saved as "Unicode" / UTF-16 | Re-save as UTF-8 (no BOM); `keyfile.py` reports this explicitly |
 | `check_key.py` says `INVALID KEY` (401/403) | Wrong/expired key; re-paste — do not add a second credential |
 | `check_key.py` says `INCONCLUSIVE` | Network/proxy/TokenHub outage; setup is fine, retry before generating |
-| `command not found: python` | macOS/Linux: use `python3 setup_mcp.py --install --verify-key` |
-| `SETUP INCOMPLETE: Python 3.10+ is required` (macOS) | Xcode CLT ships 3.9: `brew install python@3.12` or python.org installer; verify `python3 --version`, then re-run |
+| `command not found: git` | Expected. `bootstrap.py` downloads the ZIP; never install git for this |
+| `BOOTSTRAP INCOMPLETE: no Python 3.10+` | Give the student the exact one-time Python install bootstrap printed; no credit spent, no config changed |
+| `tar: This does not look like a tar archive` | Git Bash's GNU tar cannot read ZIP — let `bootstrap.py` extract it |
+| `command not found: python` | Use `python3`, `py -3`, or WorkBuddy's bundled Python by absolute path (README §1 Step 0B); any 3.6+ runs `bootstrap.py` |
+| `SETUP INCOMPLETE: Python 3.10+ is required` (macOS) | Xcode CLT ships 3.9: `brew install python@3.12` or python.org installer; verify with `bootstrap.py --find-python`, then re-run |
 | "non-ASCII characters" / "looks like UTF-16" | TextEdit saved RTF/smart quotes or UTF-16; re-paste in VS Code / `nano`, save plain UTF-8 on line 1 |
 | `pip` / TLS / venv error on first run | Needs PyPI + `python3-venv`; macOS: `xcode-select --install`; or use `HAILUO_WHEELHOUSE` offline wheels |
 | Connector shows as unavailable | Trust it: Connectors → Custom Connector → Trust, then START A NEW CHAT SESSION |

@@ -19,6 +19,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -32,6 +33,7 @@ import anyio  # noqa: E402
 from mcp import ClientSession  # noqa: E402
 from mcp.client.stdio import StdioServerParameters, stdio_client  # noqa: E402
 
+import bootstrap  # noqa: E402
 import check_key  # noqa: E402
 import keyfile  # noqa: E402
 import server  # noqa: E402
@@ -416,6 +418,91 @@ def test_macos_posix_branch() -> None:
     ok("pre-commit hook is POSIX /bin/sh and git enforces LF line endings")
 
 
+def test_bootstrap_zero_prerequisites() -> None:
+    """No git, no Python on PATH: bootstrap must handle both without a key."""
+    import ast
+    import zipfile
+    from unittest.mock import patch
+
+    src = (BASE / "bootstrap.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    assert not any(isinstance(n, ast.NamedExpr) for n in ast.walk(tree)), \
+        "walrus operator needs Python 3.8; bootstrap must run on 3.6"
+    assert "from __future__ import annotations" not in src  # 3.7+ only
+    for forbidden in ("TOKENHUB_", "read_api_key", "read_key_optional", "git clone"):
+        assert forbidden not in src, f"bootstrap.py must not touch {forbidden}"
+    assert "zipfile" in src and "urllib" in src
+    ok("bootstrap.py is stdlib-only Python 3.6+, no git and NO key access")
+
+    with patch.object(bootstrap.subprocess, "check_output", return_value="3.9.6\n"):
+        assert bootstrap.version_of(["python3"]) is None
+    with patch.object(bootstrap.subprocess, "check_output", return_value="3.13.14\n"):
+        assert bootstrap.version_of(["python3"]) == "3.13.14"
+    assert bootstrap.version_of(["definitely-not-a-python-xyz"]) is None
+    ok("interpreter probe rejects Python 3.9 and dead paths; accepts 3.10+")
+
+    candidates = bootstrap.path_candidates() + bootstrap.bundled_candidates()
+    assert candidates and all(isinstance(c, list) and c for c in candidates)
+    found, version, origin = bootstrap.discover_python()
+    assert found and version and origin, "no usable Python 3.10+ found on this host"
+    ok("discover_python finds a real 3.10+ (PATH / py launcher / WorkBuddy bundled)")
+
+    zip_path = TMP / "crafted.zip"
+    target = TMP / "extracted"
+    with zipfile.ZipFile(str(zip_path), "w") as zf:
+        zf.writestr("hailuo-local-mcp-main/setup_mcp.py", "# fake\n")
+        zf.writestr("hailuo-local-mcp-main/README.md", "# readme\n")
+        zf.writestr("../../escaped.txt", "should not be written\n")
+        zf.writestr("hailuo-local-mcp-main/../evil.txt", "should not be written\n")
+    count = bootstrap.extract_repo(zip_path, target)
+    assert count >= 2 and (target / "setup_mcp.py").is_file()
+    assert not (TMP / "escaped.txt").exists() and not (TMP / "evil.txt").exists()
+    ok("ZIP extraction uses stdlib zipfile and blocks ../ path traversal")
+
+    with patch.object(bootstrap, "download", side_effect=AssertionError("network used")):
+        repo, how = bootstrap.ensure_repo()
+    assert repo == BASE and "existing" in how
+    ok("ensure_repo() uses the existing clone and never downloads when unnecessary")
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = bootstrap.main(["--find-python"])
+    assert rc == 0 and "PYTHON_OK" in buf.getvalue()
+    assert FAKE_KEY not in buf.getvalue()
+    ok("--find-python is read-only, no network, no key in its output")
+
+    with patch.object(bootstrap, "path_candidates", return_value=[]), \
+            patch.object(bootstrap, "bundled_candidates", return_value=[]), \
+            patch.object(bootstrap, "version_of", return_value=None):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = bootstrap.main(["--find-python"])
+        text = buf.getvalue()
+    assert rc == 1 and "one-time" in text and "Do NOT install git" in text
+    assert "no credit has been spent" in text
+    ok("no Python 3.10+ anywhere -> exact one-time install help, never asks for git")
+
+    readme = (BASE / "README.md").read_text(encoding="utf-8").lower()
+    for needed in ("bootstrap.py --install --verify-key",
+                   "bootstrap https://raw.githubusercontent.com",
+                   "codeload.github.com",
+                   "raw.githubusercontent.com/vjsyong/hailuo-local-mcp/main/readme.md",
+                   "no git", "python on path"):
+        assert needed in readme, f"README is missing {needed!r}"
+    readme_raw = (BASE / "README.md").read_text(encoding="utf-8")
+    assert readme_raw.index("## 0. Students") < readme_raw.index("## 1. Agent runbook")
+    agents = (BASE / "AGENTS.md").read_text(encoding="utf-8")
+    assert "bootstrap.py" in agents
+    # AGENTS.md links to §0; keep its anchor in sync if someone edits the heading.
+    heading = next(line for line in readme_raw.splitlines()
+                   if line.startswith("## 0. Students"))
+    anchor = re.sub(r"[^a-z0-9 \-]", "", heading.lstrip("# ").lower()).strip()
+    anchor = re.sub(r"\s+", "-", anchor)
+    assert "README.md#" + anchor in agents, (anchor, "AGENTS.md §0 link is stale")
+    assert "Students — start here" not in agents, "AGENTS.md still uses the old heading"
+    ok("README §0 embeds all 4 URLs + no-git/no-Python path; AGENTS.md anchor in sync")
+
+
 def unit_tests() -> None:
     print("--- layer 1: unit / static regression tests ---")
     test_single_key_invariant()
@@ -427,6 +514,7 @@ def unit_tests() -> None:
     test_malformed_mcp_configs()
     test_corrupt_pending_and_probe_classification()
     test_macos_posix_branch()
+    test_bootstrap_zero_prerequisites()
 
 
 # ---------------------------------------------------------------------------

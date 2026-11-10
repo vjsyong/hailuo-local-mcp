@@ -1,6 +1,6 @@
 {
-  "_comment": "SHAPE ONLY - do NOT paste this file. Run setup_mcp.py --install (Windows: python, macOS/Linux: python3). It writes the real absolute paths into ~/.workbuddy-ai/mcp.json, into ~/.workbuddy/mcp.json when that folder exists, and into mcp.local.json. No key, no env, no headers.",
-  "_note_macos_linux": "On macOS/Linux setup generates ABSOLUTE_PATH_TO_THIS_REPO/.venv/bin/python instead of .venv/Scripts/python.exe. macOS needs Python 3.10+ (Xcode's python3 is 3.9): install from python.org or `brew install python@3.12`.",
+  "_comment": "SHAPE ONLY - do NOT paste this file. Run `<PY> bootstrap.py --install --verify-key` (any Python 3.6+; no git needed, no Python on PATH needed). It writes the real absolute paths into ~/.workbuddy-ai/mcp.json, into ~/.workbuddy/mcp.json when that folder exists, and into mcp.local.json. No key, no env, no headers.",
+  "_note_macos_linux": "On macOS/Linux setup generates ABSOLUTE_PATH_TO_THIS_REPO/.venv/bin/python instead of .venv/Scripts/python.exe. bootstrap.py runs on macOS's stock Python 3.9 and finds a 3.10+ interpreter (WorkBuddy bundled, Homebrew or python.org). A one-time Python install is needed ONLY if none exists anywhere.",
   "mcpServers": {
     "hailuo-video": {
       "command": "ABSOLUTE_PATH_TO_THIS_REPO/.venv/Scripts/python.exe",

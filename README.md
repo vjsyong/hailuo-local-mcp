@@ -14,6 +14,11 @@ inside this repo. You do **not** need to open or clone the repo yourself: the
 prompt below carries the link, so your agent can fetch it even from a brand-new
 chat where it knows nothing about this project.
 
+**You do not need Git, and you do not need to install anything.** Your agent
+downloads the repo itself and uses the Python that WorkBuddy already ships. On a
+Mac with no usable Python anywhere, your agent may ask you to install Python
+3.10+ once — that is the only possible extra step, and only on that machine.
+
 ### Copy this into your agent
 
 Copy the **whole block** below and paste it as your **first message** to your
@@ -24,15 +29,35 @@ runbook links, and drives the install from start to finish.
 Set up the Hailuo video MCP for my student group, end to end. This is a fresh
 chat and you know nothing about the project yet, so use the links below.
 
-REPO    https://github.com/vjsyong/hailuo-local-mcp.git
-RUNBOOK https://github.com/vjsyong/hailuo-local-mcp/blob/main/README.md
+REPO      https://github.com/vjsyong/hailuo-local-mcp.git
+RUNBOOK   https://raw.githubusercontent.com/vjsyong/hailuo-local-mcp/main/README.md
+BOOTSTRAP https://raw.githubusercontent.com/vjsyong/hailuo-local-mcp/main/bootstrap.py
+ZIP       https://codeload.github.com/vjsyong/hailuo-local-mcp/zip/refs/heads/main
 
-Clone the REPO into this workspace (or use an existing clone), work from its
-root, then read README.md and follow §1 "Agent runbook — do exactly this" in
-order: check the OS and Python version, then run the ONE setup command for this
-machine. Do not invent an install procedure or hand-edit any config file. If the
-clone fails, read the RUNBOOK from the URL instead and tell me I may need repo
-access.
+Assume the LOWEST COMMON DENOMINATOR: this machine may have NO git and NO Python
+on PATH. Do not ask me to install git. Do not run any system-level installer
+without my explicit OK. Read the RUNBOOK (README.md §1) and follow it in order;
+the condensed version is below.
+
+1. GET THE CODE. If a clone already exists here, cd into it. Otherwise download
+   the single BOOTSTRAP file (curl -fsSL -o bootstrap.py <BOOTSTRAP URL>, or
+   Invoke-WebRequest -Uri <BOOTSTRAP URL> -OutFile bootstrap.py on Windows
+   PowerShell). Do NOT use git for this and do NOT try to untar the ZIP with
+   Git Bash's tar -- bootstrap.py handles the ZIP with Python's stdlib.
+2. FIND ANY PYTHON that can RUN bootstrap.py (3.6+ is enough): python3, python,
+   py -3, or WorkBuddy's OWN bundled Python under
+   ~/.workbuddy-ai/binaries/python/versions/ (README §1 Step 0 has the exact
+   commands for Windows, macOS and Linux). Call it <PY>.
+3. RUN EXACTLY ONE SETUP COMMAND from the directory holding bootstrap.py:
+       <PY> bootstrap.py --install --verify-key
+   It downloads/extracts the ZIP if there is no clone, finds a Python 3.10+
+   (including WorkBuddy's bundled one), and runs setup_mcp.py. You may first run
+   `<PY> bootstrap.py --find-python` as a free read-only check. If it reports
+   that no Python 3.10+ exists anywhere, stop and show me the exact one-time
+   install it printed -- that is the only thing I might have to do myself.
+4. Then follow README §1 Steps 3-9: read setup's output, have me paste my ONE
+   key into api-key.txt on line 1, run the no-cost check_key.py, and hand me the
+   two WorkBuddy UI actions (Trust hailuo-video, then START A NEW CHAT SESSION).
 
 Hard rules — do not break any of these:
 - I have exactly ONE API key. Never ask for a second key, token, SecretId,
@@ -65,9 +90,10 @@ teacher — you do not need to read it.
 
 Three things worth knowing:
 
-- **On a Mac**, your agent may first ask you to install Python 3.10+ (the Python
-  that ships with macOS is too old). Follow its instructions; it is a one-time
-  install.
+- **On a Mac**, your agent uses WorkBuddy's own Python when it can. Only if that
+  is missing may it ask you to install Python 3.10+ once (the Python that ships
+  with macOS is 3.9 — too old). Follow its instructions; it is a one-time
+  install. **Git is never needed.**
 - If your agent asks for a **second** key, a token, or a SecretId/SecretKey,
   something is wrong. Point it back at `README.md` and do not provide anything
   else — each group gets exactly one key.
@@ -79,29 +105,35 @@ Three things worth knowing:
 ## 1. Agent runbook — do exactly this
 
 **This README is the canonical runbook for the student's WorkBuddy agent.** The
-student pastes the kickoff prompt from §0 above, which embeds the repo URL — so
-you may have no prior context and must clone first (Step 0). On receiving it (or
-any equivalent request), execute the steps below in order, without improvising.
+student pastes the kickoff prompt from §0 above, which embeds the repo, raw
+runbook, bootstrap and ZIP URLs — so you may have no prior context and must fetch
+the code first (Step 0). **Assume the student has neither Git nor Python on
+PATH:** Step 0 works without both. On receiving the prompt (or any equivalent
+request), execute the steps below in order, without improvising.
 [AGENTS.md](AGENTS.md) is the extended reference and design rationale; if the two
 ever disagree, this README wins.
 
 ### Agent quick card
 
 ```text
-TRIGGER         Student pastes the §0 kickoff prompt. It embeds REPO + RUNBOOK URLs,
-                so you may arrive with ZERO prior context. Clone first (Step 0).
+TRIGGER         Student pastes the §0 kickoff prompt. It embeds REPO + RUNBOOK +
+                BOOTSTRAP + ZIP URLs, so you may arrive with ZERO prior context.
+                Fetch the code first (Step 0) -- git is OPTIONAL.
 
 GOAL            Install a local STDIO MCP server that generates MiniMax H3 videos
                 from inside WorkBuddy, using ONE Tencent Cloud TokenHub API key.
 
-AGENT COMMAND   Windows:        python  setup_mcp.py --install --verify-key
-                macOS / Linux:  python3 setup_mcp.py --install --verify-key
-                (run from the directory containing this README)
+AGENT COMMAND   <PY> bootstrap.py --install --verify-key
+                <PY> = ANY Python 3.6+ (python3, python, py -3, or WorkBuddy's
+                OWN bundled Python by absolute path). Run from the directory
+                holding bootstrap.py. ONE command, works with no git on PATH.
 
 STUDENT ACTIONS 1. Paste ONE API key into api-key.txt (line 1, plain text)
                 2. Connectors -> Custom Connector -> Trust "hailuo-video"
                 3. START A NEW CHAT SESSION
-                These three are the ONLY manual steps. Everything else is yours.
+                These three are the ONLY manual steps on a normal machine.
+                ONLY if no Python 3.10+ exists anywhere: a one-time Python
+                install (bootstrap.py prints the exact command). Never git.
 
 CREDENTIALS     1 key. No env var, no group token, no SecretId/SecretKey,
                 no user field, no headers, no second paste.
@@ -117,60 +149,139 @@ SUCCESS         video_capabilities -> key_configured=true, credentials_required=
                 then generate_video -> video_path (a LOCAL absolute MP4 path)
 ```
 
-### Step 0 — Orient (read-only, no side effects)
+### Step 0 — Get the code with NO git, and find ANY Python
 
-**Cold start:** if you arrived from the §0 kickoff prompt, you may have had zero
-prior context. If no clone exists in the workspace, clone
-`https://github.com/vjsyong/hailuo-local-mcp.git` **first**. If the clone is
-blocked (private repo), tell the student they need read access and fall back to
-the RUNBOOK URL in §0. Everything below assumes you are inside the clone.
+**Cold start:** you may have arrived from the §0 kickoff prompt with zero prior
+context. **Assume the machine has no `git` and no `python` on PATH.** WorkBuddy
+agents can run shell commands; this install of WorkBuddy also ships its own
+Python 3.13 and PortableGit, but neither is guaranteed to be on PATH — and the
+docs make **no promise** that WorkBuddy will install developer tools for you.
+So: never *require* git, and never run a system-level installer without asking.
 
-Set `REPO_ROOT` to the directory containing this README (the clone root). Work
-from there; do not guess a path. Then run:
+#### A. Get `bootstrap.py` (one file, stdlib-only, Python 3.6+)
+
+If a clone/extraction already exists in the workspace, `cd` into it — it already
+contains `bootstrap.py` (or you can fetch the standalone copy below into its
+parent). Otherwise download just that one file into the workspace:
 
 ```bash
-git status --short                          # must be clean-ish; note untracked files
-python --version        # Windows
-python3 --version       # macOS / Linux
-python3 setup_mcp.py --check               # read-only status (Windows: python ...)
+# macOS / Linux / Git Bash on Windows
+curl -fsSL -o bootstrap.py \
+  https://raw.githubusercontent.com/vjsyong/hailuo-local-mcp/main/bootstrap.py
 ```
 
-`--check` returning exit code `1` on a fresh clone is **expected** — it means the
-install has not run yet, not that something is broken. Do not treat it as an error
-and do not try to "repair" files by hand.
+```powershell
+# Windows PowerShell (if curl is unavailable)
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/vjsyong/hailuo-local-mcp/main/bootstrap.py -OutFile bootstrap.py
+```
+
+`bootstrap.py` downloads and extracts the repo ZIP itself using `urllib` +
+`zipfile`. **Do not clone, do not call `tar -xf` on the ZIP** (Git Bash's GNU tar
+cannot read ZIP), and do not run `unzip`. If the download is blocked, fetch the
+ZIP URL from §0 by hand and set `HAILUO_ZIP` to that local file.
+
+#### B. Find ANY Python able to *run* bootstrap.py (3.6+ is enough)
+
+```bash
+python3 --version || python --version || py -3 --version
+```
+
+If all of those fail, use WorkBuddy's **own** bundled Python by absolute path:
+
+```bash
+# Windows (Git Bash)
+ls "$HOME/.workbuddy-ai/binaries/python/versions/"*/python.exe
+# Windows (PowerShell)
+Get-ChildItem "$env:USERPROFILE\.workbuddy-ai\binaries\python\versions\*\python.exe"
+# Windows app bundle (fallback)
+"$LOCALAPPDATA/Programs/WorkBuddyAI/resources/vendor/python/python.exe" --version
+# macOS / Linux (home bundle, then app bundle)
+ls ~/.workbuddy-ai/binaries/python/versions/*/bin/python3 2>/dev/null
+"/Applications/WorkBuddy AI.app/Contents/Resources/vendor/python/bin/python3" --version
+```
+
+Assign the path you found to `<PY>`. On macOS the stock Xcode `python3` is 3.9 —
+**that is fine for running `bootstrap.py`**, which will then find (or report the
+need for) a 3.10+ interpreter for the install itself. Do not install git.
+
+#### C. Free read-only probe
+
+```bash
+<PY> bootstrap.py --find-python
+```
+
+`PYTHON_OK <path>` + `VERSION 3.10+` → go to Step 2. If it prints
+`BOOTSTRAP INCOMPLETE: no Python 3.10+`, **stop** and give the student the exact
+one-time install command it printed. This is the only case that needs a human
+install, and it is the only exception to "the student pastes just one key".
+No credit is spent and no config is changed by this probe.
+
+#### D. Orient
+
+`REPO_ROOT` is the directory containing `bootstrap.py` (Step 2 will create
+`./hailuo-local-mcp/` from the ZIP if needed). Run `git status --short` **only if
+git happens to exist**; a ZIP extraction has no `.git`, which is expected and
+harmless (setup simply skips the pre-commit guard). A `--check` exit code of `1`
+on a fresh machine is also expected — it means the install has not run yet. Do
+not "repair" files by hand.
 
 ### Step 1 — Prerequisites gate (STOP if unmet)
 
-* **Python 3.10+** is required (3.11+ recommended). Setup exits `1` with
-  `SETUP INCOMPLETE: Python 3.10+ is required` on older interpreters.
+| Need | Who provides it | If missing |
+|---|---|---|
+| The repo | `bootstrap.py` (ZIP download, **no git**) or an existing clone | Use `HAILUO_ZIP` with a local copy of the ZIP |
+| Python to *run* bootstrap | any 3.6+ — including macOS 3.9 or WorkBuddy's bundled Python | Follow Step 0B; do not install git |
+| Python to *run* setup | 3.10+ found by `--find-python` (PATH, `py` launcher, or WorkBuddy bundled) | The **one** permitted human install; bootstrap prints the exact command |
+| PyPI for `mcp==2.3.0`, `httpx==0.28.1` | first-run network | Set `HAILUO_WHEELHOUSE` to a folder of wheels; setup uses `--no-index --find-links` |
+| git | **NOT REQUIRED** | Do not install it, do not ask the student to |
+
+* Setup exits `1` with `SETUP INCOMPLETE: Python 3.10+ is required` on an older
+  interpreter; `bootstrap.py` normally prevents you from ever getting there.
 * **macOS:** there is no `python`, and the Xcode Command Line Tools `python3` is
-  **3.9** — too old. Before setup, run `python3 --version`; if below 3.10, have
-  the student install Python once:
-
-  ```bash
-  brew install python@3.12                 # or https://www.python.org/downloads/macos/
-  python3 --version                       # must print 3.10 or newer
-  xcode-select --install                  # only if pip later needs to compile a wheel
-  ```
-
-* **First run needs PyPI access** for `mcp==2.3.0` and `httpx==0.28.1`. For a
-  locked-down lab, set `HAILUO_WHEELHOUSE` to a folder of wheels; setup then
-  installs with `--no-index --find-links`.
+  **3.9** — too old for setup but fine for bootstrap. If `--find-python` finds no
+  3.10+, have the student install Python once:
+  `brew install python@3.12` or <https://www.python.org/downloads/macos/>, then
+  re-run Step 0C. `xcode-select --install` is only needed if pip must compile a
+  wheel.
+* **WorkBuddy bundled Python caveat:** when that is the only 3.10+ interpreter,
+  `.venv` is based on it. If a WorkBuddy update later replaces that Python,
+  re-run `bootstrap.py --install --verify-key` once. Prefer a real system Python
+  when one exists.
+* `HAILUO_ZIP`, `HAILUO_REPO_DIR`, `HAILUO_PYTHON` and `HAILUO_WHEELHOUSE` are
+  **installation path hints, not credentials**. Never put an API key in any of
+  them or in any environment variable.
 * Never install dependencies globally, never create `.venv` by hand, never edit
   `~/.workbuddy-ai/mcp.json` by hand. `setup_mcp.py` does all of it.
 
 ### Step 2 — Run the ONE setup command
 
 ```bash
-# Windows
-python setup_mcp.py --install --verify-key        # or: py -3.11 setup_mcp.py --install --verify-key
-
-# macOS / Linux  (never bare `python` here)
-python3 setup_mcp.py --install --verify-key
+<PY> bootstrap.py --install --verify-key
 ```
 
-Setup is **single-pass**: it completes fully even when `api-key.txt` does not
-exist yet or still holds the placeholder. In order, it:
+`<PY>` is the interpreter from Step 0B (any 3.6+, including WorkBuddy's bundled
+Python by absolute path). Examples:
+
+```bash
+python3 bootstrap.py --install --verify-key                 # macOS / Linux
+python  bootstrap.py --install --verify-key                 # Windows
+"/c/Users/stu/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe" \
+    bootstrap.py --install --verify-key                     # no python on PATH
+```
+
+`bootstrap.py` (stdlib-only, no git) does this first:
+
+1. Uses the existing clone/extraction, or downloads the GitHub ZIP and extracts
+   it with `zipfile` into `./hailuo-local-mcp/` (path-traversal checked).
+2. Probes interpreters in order: `HAILUO_PYTHON`, the current one, PATH names,
+   the Windows `py` launcher, then WorkBuddy's bundled Python locations. Stops
+   at the first usable 3.10+.
+3. Invokes `setup_mcp.py --install --verify-key` **with that interpreter** and
+   returns its exit code unchanged. Arguments pass through, so
+   `bootstrap.py --check` is a read-only status check.
+
+`setup_mcp.py` is **single-pass**: it completes fully even when `api-key.txt`
+does not exist yet or still holds the placeholder. In order, it:
 
 1. Creates `api-key.txt` from `api-key.example.txt` if missing (gitignored).
 2. Creates `.venv/` and installs `requirements.txt` — skipped when imports
@@ -183,7 +294,8 @@ exist yet or still holds the placeholder. In order, it:
    server, tolerating malformed JSON, backing up with a collision-proof name,
    and reading the file back to confirm the entry landed.
 6. Installs a local pre-commit guard that blocks committing `api-key.txt` or
-   edits to `api-key.example.txt` (skipped if a hook already exists).
+   edits to `api-key.example.txt` (**skipped** when there is no `.git`, i.e. a
+   ZIP install — there is nothing to commit with).
 7. With `--verify-key`, makes **one no-cost** TokenHub auth probe. It is skipped
    cleanly if no key has been pasted, and a rejected/inconclusive probe **never
    fails the install**.
@@ -195,11 +307,16 @@ not run `selftest.py` as a "fix" — it is offline verification only.
 
 | Exact output fragment | Meaning | Your next action |
 |---|---|---|
-| `SETUP INCOMPLETE: Python 3.10+ is required` | Wrong interpreter | Go to Step 1; do not continue |
+| `BOOTSTRAP INCOMPLETE: no Python 3.10+ interpreter was found` | No usable Python anywhere on this machine | **Stop.** Give the student the exact one-time install bootstrap printed. This is the only human install; never install git |
+| `BOOTSTRAP INCOMPLETE: could not download the repo ZIP` / `not a ZIP` | No network, proxy or captive portal | Fetch the §0 ZIP URL manually and set `HAILUO_ZIP`; or set `HAILUO_REPO_DIR` to an existing extraction |
+| `[ok] extracted N files -> ... (no git used)` | ZIP path succeeded, no `.git` present | Normal. Continue; the pre-commit guard will be skipped |
+| `PYTHON_OK <path>` / `VERSION 3.10+` | Read-only `--find-python` probe | Use that path as `<PY>` in Step 2 |
+| `[!] Using WorkBuddy's bundled Python as the .venv base` | Only a WorkBuddy-supplied Python was available | Normal. Note it: re-run bootstrap once if WorkBuddy later upgrades Python |
+| `SETUP INCOMPLETE: Python 3.10+ is required` | Wrong interpreter (only possible if setup was run directly) | Go to Step 1; do not continue |
 | `SETUP INCOMPLETE: Could not create .venv` | Missing `venv` module / broken Python | Install a full Python 3.10+; re-run once |
 | `SETUP INCOMPLETE: Dependency install failed` | No PyPI / proxy / wheelhouse | Fix network or set `HAILUO_WHEELHOUSE`; re-run |
 | `[!!] Ignored legacy environment variables: ...` | Old `TOKENHUB_*` vars are set but ignored | Tell student to unset them; **do not** use them as a key source |
-| `[!] Created api-key.txt -- this is the ONLY file you ever edit` | Normal on a fresh clone | Continue |
+| `[!] Created api-key.txt -- this is the ONLY file you ever edit` | Normal on a fresh install (clone or ZIP) | Continue |
 | `[!] api-key.txt has no key yet (setup continues).` | Normal — key not pasted | Continue to Step 4 |
 | `[ok] ONE API key found in api-key.txt (value never displayed)` | Key already present | Continue to Step 5 |
 | `[!!] <path>: ...` on a config merge line | That config could not be written | Use `mcp.local.json` as the manual paste fallback |
@@ -335,6 +452,12 @@ anything.
    other groups.
 8. **Do not generate with an unverified key.** A real generation spends real
    credit from the group's allowance.
+9. **Never require git or a system-level install.** Fetch the repo with
+   `bootstrap.py` (ZIP + `zipfile`) and use any available Python 3.10+, including
+   WorkBuddy's bundled one. Do not install git, do not run `winget`/`brew`/`apt`
+   or an OS installer without the student's explicit OK, and do not put a key in
+   any `HAILUO_*` path hint. The only permitted human install is Python 3.10+
+   when `--find-python` proves none exists anywhere.
 
 ---
 
@@ -429,8 +552,12 @@ Supporting behaviour:
 | `KEY VALID` never appears | See Step 5. Do not generate |
 | `API key rejected` (HTTP 401/403) | Wrong/expired key; re-paste. Never add a second credential |
 | `rate limited` (429) | Wait and retry the same single key |
-| `SETUP INCOMPLETE: Python 3.10+` (macOS) | Xcode CLT ships 3.9: `brew install python@3.12` or python.org installer, verify `python3 --version`, re-run setup |
-| `command not found: python` | macOS/Linux: use `python3 setup_mcp.py --install --verify-key` |
+| `BOOTSTRAP INCOMPLETE: no Python 3.10+` | Give the student the exact one-time install bootstrap printed; then re-run Step 0C. Do **not** install git |
+| `command not found: git` | Expected and harmless — bootstrap downloads the ZIP. Never install git for this |
+| `tar: This does not look like a tar archive` | Git Bash's GNU tar cannot read ZIP. Let `bootstrap.py` extract it; do not use tar/unzip |
+| `SETUP INCOMPLETE: Python 3.10+` (macOS) | Xcode CLT ships 3.9: `brew install python@3.12` or python.org installer, verify with `bootstrap.py --find-python`, re-run Step 2 |
+| `command not found: python` | Use `python3`, `py -3`, or WorkBuddy's bundled Python by absolute path (Step 0B). Any 3.6+ can run `bootstrap.py` |
+| `.venv` python breaks after a WorkBuddy update | Its base interpreter was replaced; re-run `bootstrap.py --install --verify-key` once |
 | `pip` / TLS / venv error | Needs PyPI + `python3-venv`; macOS: `xcode-select --install`; offline: `HAILUO_WHEELHOUSE` |
 | `ModuleNotFoundError: mcp` | Run with the `.venv` python, or re-run `setup_mcp.py --install` |
 | Connector unavailable / missing | Step 6: Trust it, then **START A NEW CHAT SESSION** |
@@ -446,13 +573,20 @@ Supporting behaviour:
 ## 6. Command reference
 
 ```bash
-# setup (single pass; completes before the key is pasted)
-python  setup_mcp.py --install --verify-key       # Windows
-python3 setup_mcp.py --install --verify-key       # macOS / Linux
+# CANONICAL: one command, no git, no Python on PATH required
+<PY> bootstrap.py --install --verify-key
 
-python3 setup_mcp.py --check          # read-only: venv / key / both config entries
-python3 setup_mcp.py --uninstall      # remove ONLY hailuo-video (with backup)
-python3 setup_mcp.py                  # dry run: builds .venv + mcp.local.json, no global install
+# free read-only interpreter probe (before install, spends nothing)
+<PY> bootstrap.py --find-python
+
+# passthrough checks (bootstrap forwards every argument to setup_mcp.py)
+<PY> bootstrap.py --check               # read-only: venv / key / both config entries
+<PY> bootstrap.py --uninstall          # remove ONLY hailuo-video (with backup)
+
+# direct setup, ONLY when Python 3.10+ is already on PATH
+python3 setup_mcp.py --install --verify-key       # macOS / Linux
+python  setup_mcp.py --install --verify-key       # Windows
+python3 setup_mcp.py                             # dry run: no global install
 
 # no-cost key probe (Windows: .venv/Scripts/python.exe)
 .venv/bin/python check_key.py
@@ -461,15 +595,19 @@ python3 setup_mcp.py                  # dry run: builds .venv + mcp.local.json, 
 .venv/bin/python selftest.py
 
 # offline classroom install
-HAILUO_WHEELHOUSE=/path/to/wheels python3 setup_mcp.py --install --verify-key
+HAILUO_WHEELHOUSE=/path/to/wheels <PY> bootstrap.py --install --verify-key
+HAILUO_ZIP=/path/to/repo.zip       <PY> bootstrap.py --install --verify-key
 ```
 
+`bootstrap.py` runs on Python 3.6+, downloads/extracts the repo with the stdlib
+when there is no clone, finds a 3.10+ interpreter, and returns setup's exit code.
 `setup_mcp.py` prints `INSTALL WRITTEN -- activation is NOT complete.` on
 success and never claims the connector is live. It exits `1` on an unsupported
 Python or a failed dependency install; it may have *created* `api-key.txt`, but it
 never overwrites an existing key value or any existing config. `--check` exits
 `1` when the install is incomplete. `check_key.py`
-exits `0` **only** for `KEY VALID` (HTTP 400).
+exits `0` **only** for `KEY VALID` (HTTP 400). `HAILUO_*` variables are path
+hints only — none of them may ever hold a credential.
 
 ---
 
@@ -477,10 +615,28 @@ exits `0` **only** for `KEY VALID` (HTTP 400).
 
 | | Windows | macOS (Intel / Apple Silicon) | Linux |
 |---|---|---|---|
-| Setup command | `python setup_mcp.py --install --verify-key` | `python3 setup_mcp.py --install --verify-key` | `python3 setup_mcp.py --install --verify-key` |
+| Setup command | `<PY> bootstrap.py --install --verify-key` | same | same |
 | Venv python | `.venv/Scripts/python.exe` | `.venv/bin/python` | `.venv/bin/python` |
-| Python prerequisite | 3.10+ | **3.10+ — stock `python3` is 3.9** | 3.10+ and `python3-venv` |
+| Python prerequisite | 3.10+ (bootstrap accepts 3.6+) | **3.10+ — stock `python3` is 3.9** (fine for bootstrap) | 3.10+ and `python3-venv` |
+| Needs git? | **No** | **No** | **No** |
+| No Python on PATH | Use WorkBuddy bundled `python.exe` by absolute path | Same, or python.org / Homebrew once | Use `python3` absolute path or install `python3-venv` |
 | Config | `~/.workbuddy-ai/mcp.json` (+ `~/.workbuddy/mcp.json` if that folder exists) | same | same |
+
+**Lowest common denominator (no git, no Python on PATH).** WorkBuddy's public
+Overview docs do **not** promise to install developer tools, and installing them
+needs rights an agent may not have — so this repo does not rely on that. What was
+verified on a Windows WorkBuddy install: a bundled Python 3.13
+(`~/.workbuddy-ai/binaries/python/versions/<ver>/python.exe`, also
+`%LOCALAPPDATA%/Programs/WorkBuddyAI/resources/vendor/python/python.exe`),
+PortableGit, Node, `curl.exe` and `C:\Windows\System32\tar.exe` (bsdtar). Git
+Bash's `/usr/bin/tar` is GNU tar and **cannot** open a ZIP — which is why
+`bootstrap.py` uses `zipfile` instead of any external tool. WorkBuddy therefore
+usually needs to install nothing at all: the agent locates its bundled Python and
+runs `bootstrap.py`, which fetches the ZIP itself. **The macOS bundled-Python
+paths are best-effort guesses** (app-bundle layout was not verifiable from
+Windows); confirm with one Mac pilot. If no 3.10+ interpreter exists anywhere,
+the student performs exactly one manual Python install — bootstrap prints the
+platform-specific command — and never installs git.
 
 Generated STDIO config (setup picks the branch automatically via `os.name`):
 
@@ -517,18 +673,21 @@ one Mac student running the full flow before you distribute to all groups.
 > Student agents should **not** act on this section.
 
 1. The repo is live at `https://github.com/vjsyong/hailuo-local-mcp.git` and is
-   currently **public**, so the §0 kickoff prompt clones with no sign-in. It holds
-   no credentials, only code and docs. If classroom policy requires a private
-   repo, change visibility in GitHub Settings **and grant every student read
-   access first** — otherwise their agents cannot clone and installation fails.
-   Confirm your WorkBuddy build honours external edits to `mcp.json`; if not,
-   students paste the block from `mcp.local.json` into the MCP settings UI
-   manually.
+   currently **public**, so the §0 kickoff prompt's raw `README.md`,
+   `bootstrap.py` and ZIP URLs all work with no sign-in. It holds no credentials,
+   only code and docs. **Git is not required on student machines.** If classroom
+   policy requires a private repo, change visibility in GitHub Settings **and
+   grant every student read access first** — otherwise the raw/ZIP downloads
+   fail too; in that case hand out a local ZIP and set `HAILUO_ZIP`. Confirm your
+   WorkBuddy build honours external edits to `mcp.json`; if not, students paste
+   the block from `mcp.local.json` into the MCP settings UI manually.
 2. Give each of the 5 groups **its own single** TokenHub API key via a separate
    channel (LMS, email, in person) — never in the repo, never in an issue.
 3. Point students at `README.md` §0 and have them paste that one kickoff prompt.
-   It carries the repo URL, so their agent clones the repo and runs the single
-   setup command itself; the student pastes only their own key.
+   It carries the repo, raw runbook, bootstrap and ZIP URLs, so their agent can
+   fetch the code **without git** and run the single setup command itself; the
+   student pastes only their own key. Do not send extra install instructions —
+   that invites agents to improvise.
 4. To revoke a group: rotate/delete that **one** key in the Tencent Cloud
    console. The student pastes the replacement into `api-key.txt` — no restart,
    no second setup.
@@ -539,7 +698,9 @@ one Mac student running the full flow before you distribute to all groups.
    wheelhouse **per OS** and set `HAILUO_WHEELHOUSE` before setup.
 7. Pilot one Windows machine **and one Mac** through the full flow (Python →
    setup → paste key → Trust → new session → 4-second generation) before
-   distributing to all 5 groups.
+   distributing to all 5 groups. On at least one pilot, remove git from PATH and
+   use only WorkBuddy's bundled Python by absolute path — that is the
+   lowest-common-denominator case this runbook is written for.
 
 ---
 
@@ -559,8 +720,9 @@ serve.
 | Not this | **Not** MPS `CreateAigcVideoTask`; no TC3 signing, no region, no `user` field |
 | Key storage | line 1 of `api-key.txt` only, read on **every** tool call (no restart to rotate) |
 
-**One group = one key = one OS account = one clone.** Two groups sharing a
-machine/account will overwrite each other's connector entry and key file.
+**One group = one key = one OS account = one repo copy** (clone or ZIP
+extraction). Two groups sharing a machine/account will overwrite each other's
+connector entry and key file.
 
 ```text
 WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
@@ -587,8 +749,11 @@ WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
 
 ## 10. Acceptance checklist (agent: confirm before saying "done")
 
-- [ ] `git status --short` shows no secret or runtime file staged.
-- [ ] `setup_mcp.py --check` reports install complete and the connector entry in
+- [ ] `git status --short` shows no secret or runtime file staged (skip entirely
+      when the ZIP path was used — there is no `.git`).
+- [ ] The install worked **without installing git**; if Python was not on PATH,
+      the WorkBuddy bundled interpreter (or `bootstrap.py --find-python`) was used.
+- [ ] `bootstrap.py --check` reports install complete and the connector entry in
       the expected config path(s).
 - [ ] `api-key.txt` holds exactly one key and is **gitignored**; the key was
       never echoed anywhere.
@@ -609,6 +774,7 @@ WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
 |---|---|
 | `README.md` | **This file — §0 student kickoff prompt + the canonical agent runbook** |
 | `AGENTS.md` | Extended reference, rationale, teacher notes |
+| `bootstrap.py` | **Zero-prerequisite entry point**: no git, no Python on PATH needed. Downloads/extracts the ZIP, finds a 3.10+ interpreter (incl. WorkBuddy's bundled Python), delegates to setup |
 | `setup_mcp.py` | Stdlib-only one-command installer (`--install` / `--check` / `--verify-key` / `--uninstall`) |
 | `server.py` | MCP STDIO server, 5 tools, paid-job recovery |
 | `tokenhub.py` | TokenHub client: validation, redaction, SSRF-safe atomic download |
@@ -626,9 +792,15 @@ WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
 
 ## Requirements
 
-- Python 3.10+ (3.11+ recommended)
-- WorkBuddy with custom MCP connector support
-- `mcp==2.3.0`, `httpx==0.28.1` (installed into `.venv` automatically)
-- One Tencent Cloud TokenHub API key per group
-- Network access to PyPI on the first run (or a wheelhouse), and to TokenHub
-  for generation
+- **Not git.** Not a system-level install. The repo arrives as a ZIP if needed.
+- A Python 3.10+ interpreter *somewhere* — system, `py` launcher, or WorkBuddy's
+  own bundled Python. `bootstrap.py` itself runs on any Python 3.6+, so a stock
+  macOS 3.9 can drive the install. Only if none exists is a one-time Python
+  install needed.
+- WorkBuddy with custom MCP connector support and the ability to run shell
+  commands (its agent toolset provides this).
+- `mcp==2.3.0`, `httpx==0.28.1` (installed into `.venv` automatically).
+- One Tencent Cloud TokenHub API key per group.
+- Network access to GitHub/codeload for the ZIP, PyPI on the first run (or a
+  wheelhouse), and to TokenHub for generation. Offline labs: `HAILUO_ZIP` +
+  `HAILUO_WHEELHOUSE`.
