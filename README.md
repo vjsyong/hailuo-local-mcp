@@ -1,6 +1,6 @@
-# Hailuo Video MCP — local STDIO server, one API key per group
+# Hailuo Video MCP
 
-## 0. Students — start here
+## 0. Students, Start here!
 
 This repo lets you generate short videos from a text description inside
 WorkBuddy. **You do not need to run any terminal commands** — your WorkBuddy
