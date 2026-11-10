@@ -6,6 +6,10 @@
 > reference (design rationale, exact failure tables, teacher notes); its rules
 > are identical, and **README.md wins** if they ever diverge. Do not improvise a
 > different setup procedure.
+>
+> **README.md §0 "Students — start here" is student-facing** and holds the exact
+> copy-paste kickoff prompt students send their agent. Expect that prompt as the
+> trigger, then execute §1. Keep §0 free of agent internals.
 
 This repository installs a **local STDIO MCP server** on each student's
 computer. WorkBuddy launches `server.py` as a subprocess; there is no hosted
@@ -44,8 +48,10 @@ committing either file.
 ## Student quick start
 
 1. Clone this repository.
-2. Tell your WorkBuddy agent: **"Set up the video MCP in this repo."**
-   The agent creates `api-key.txt` for you and installs everything.
+2. Copy the **kickoff prompt** from
+   [README.md §0](README.md#0-students--start-here) and paste it as your first
+   message to your WorkBuddy agent. It creates `api-key.txt` for you and installs
+   everything.
 3. Open `api-key.txt` and paste **your group's single API key** on line 1 —
    plain text, UTF-8, no quotes, no `Bearer ` prefix. Save.
 4. Run the **no-cost** key check (`check_key.py`) — or ask your agent to run it.

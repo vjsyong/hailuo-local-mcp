@@ -1,12 +1,72 @@
 # Hailuo Video MCP — local STDIO server, one API key per group
 
-**This README is the canonical runbook for the student's WorkBuddy agent.** When a
-student says *"Set up the video MCP in this repo"*, the agent executes [§1 Agent
-runbook](#1-agent-runbook--do-exactly-this) in order, without improvising.
+## 0. Students — start here
+
+This repo lets you generate short videos from a text description inside
+WorkBuddy. **You do not need to run any terminal commands** — your WorkBuddy
+agent does all the setup for you.
+
+**Before you begin:** have this repo open in WorkBuddy, and have the **one API
+key** your teacher gave your group ready. Your key comes from your teacher (LMS,
+email, or in person) — it is never inside this repo.
+
+### Copy this into your agent
+
+Copy everything inside the box below and paste it as your **first message** to
+your WorkBuddy agent. That one message kicks off the whole process:
+
+```text
+Set up the video MCP in this repo. Read README.md and follow its agent runbook
+exactly, in order.
+
+I have exactly ONE API key for my group: never ask for a second key, token, or
+other credential, and never print, log, commit, or put my key in a config file.
+Do not generate any video until the free check_key.py probe passes.
+
+When setup is done, tell me the exact steps I must do myself, then how to ask
+for my first 4-second test video.
+```
+
+### Then you do three things
+
+1. **Paste your one API key** into `api-key.txt` on line 1 — plain text, UTF-8,
+   no quotes, no `Bearer ` prefix, nothing else in the file. This is the only
+   file you ever edit.
+2. In WorkBuddy: **Connectors → Custom Connector → Trust `hailuo-video`**.
+3. **Start a new chat session** — the connector only loads when a session starts.
+
+Then ask: *"Generate a 4 second video of a cat sitting on a desk."* Your agent
+will give you the full local path to the MP4 in `videos/`. Open it directly.
+
+**That's it.** Everything below this line is written for your agent and your
+teacher — you do not need to read it.
+
+Three things worth knowing:
+
+- **On a Mac**, your agent may first ask you to install Python 3.10+ (the Python
+  that ships with macOS is too old). Follow its instructions; it is a one-time
+  install.
+- If your agent asks for a **second** key, a token, or a SecretId/SecretKey,
+  something is wrong. Point it back at `README.md` and do not provide anything
+  else — each group gets exactly one key.
+- Never commit `api-key.txt`, and never put a real key into
+  `api-key.example.txt`. Both are guarded automatically.
+
+---
+
+## 1. Agent runbook — do exactly this
+
+**This README is the canonical runbook for the student's WorkBuddy agent.** The
+student pastes the kickoff prompt from §0 above; on receiving it (or any
+equivalent request), execute the steps below in order, without improvising.
 [AGENTS.md](AGENTS.md) is the extended reference and design rationale; if the two
 ever disagree, this README wins.
 
+### Agent quick card
+
 ```text
+TRIGGER         Student pastes the kickoff prompt from §0 (or asks to set up the repo).
+
 GOAL            Install a local STDIO MCP server that generates MiniMax H3 videos
                 from inside WorkBuddy, using ONE Tencent Cloud TokenHub API key.
 
@@ -32,31 +92,6 @@ NEVER           Echo or log the key; put it in any config or commit; resubmit a
 SUCCESS         video_capabilities -> key_configured=true, credentials_required=1
                 then generate_video -> video_path (a LOCAL absolute MP4 path)
 ```
-
----
-
-## 0. What this is
-
-WorkBuddy launches `server.py` as a subprocess on the student's own computer and
-speaks MCP over stdin/stdout. There is **no hosted server, no port, no public
-URL, and no group-token system**. The finished video is downloaded to `videos/`
-and returned as a local absolute `video_path` — there is no `download_url` to
-serve.
-
-| | |
-|---|---|
-| Model | `minimax-video-h3` (also `minimax-video-h3-max`) |
-| API | `https://tokenhub-intl.tencentcloudmaas.com/v1/wand/minimax-video-v2/...` |
-| Auth | ONE `Authorization: Bearer <API key>` header |
-| Not this | **Not** MPS `CreateAigcVideoTask`; no TC3 signing, no region, no `user` field |
-| Key storage | line 1 of `api-key.txt` only, read on **every** tool call (no restart to rotate) |
-
-**One group = one key = one OS account = one clone.** Two groups sharing a
-machine/account will overwrite each other's connector entry and key file.
-
----
-
-## 1. Agent runbook — do exactly this
 
 ### Step 0 — Orient (read-only, no side effects)
 
@@ -447,34 +482,13 @@ one Mac student running the full flow before you distribute to all groups.
 
 ---
 
-## 8. Student quick start (human-facing)
-
-1. Clone this repo.
-2. Tell your WorkBuddy agent: **"Set up the video MCP in this repo."**
-   Your agent creates `api-key.txt` and installs everything.
-3. Paste your group's **single API key** into `api-key.txt` on line 1 — plain
-   text, UTF-8, no quotes, no `Bearer ` prefix. Save. This is the only file you
-   edit.
-4. In WorkBuddy: **Connectors → Custom Connector → Trust `hailuo-video`**, then
-   **start a new chat session**.
-5. Ask: *"Generate a 4 second video of a cat sitting on a desk."*
-
-Before generating, your agent runs `check_key.py` — a free check that creates no
-video and spends no credit. The finished MP4 appears in `videos/`; your agent
-will give you its full local path.
-
-- **Never commit `api-key.txt`.** It is gitignored and a hook blocks it.
-- **Never put a real key in `api-key.example.txt`** — that file is tracked.
-- One group = one key = one computer/OS account = one clone.
-
----
-
-## 9. For the teacher — distribution and rotation
+## 8. For the teacher — distribution and rotation
 
 > Student agents should **not** act on this section.
 
-1. Push this repo to a private classroom org. Confirm your WorkBuddy build
-   honours external edits to `mcp.json`; if not, students paste the block from
+1. The repo is pushed — confirm in GitHub Settings that visibility is **private**
+   (a classroom org). Confirm your WorkBuddy build honours external edits to
+   `mcp.json`; if not, students paste the block from
    `mcp.local.json` into the MCP settings UI manually.
 2. Give each of the 5 groups **its own single** TokenHub API key via a separate
    channel (LMS, email, in person) — never in the repo, never in an issue.
@@ -494,7 +508,24 @@ will give you its full local path.
 
 ---
 
-## 10. Architecture and security model
+## 9. What this is — architecture and security model
+
+WorkBuddy launches `server.py` as a subprocess on the student's own computer and
+speaks MCP over stdin/stdout. There is **no hosted server, no port, no public
+URL, and no group-token system**. The finished video is downloaded to `videos/`
+and returned as a local absolute `video_path` — there is no `download_url` to
+serve.
+
+| | |
+|---|---|
+| Model | `minimax-video-h3` (also `minimax-video-h3-max`) |
+| API | `https://tokenhub-intl.tencentcloudmaas.com/v1/wand/minimax-video-v2/...` |
+| Auth | ONE `Authorization: Bearer <API key>` header |
+| Not this | **Not** MPS `CreateAigcVideoTask`; no TC3 signing, no region, no `user` field |
+| Key storage | line 1 of `api-key.txt` only, read on **every** tool call (no restart to rotate) |
+
+**One group = one key = one OS account = one clone.** Two groups sharing a
+machine/account will overwrite each other's connector entry and key file.
 
 ```text
 WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
@@ -519,7 +550,7 @@ WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
 
 ---
 
-## 11. Acceptance checklist (agent: confirm before saying "done")
+## 10. Acceptance checklist (agent: confirm before saying "done")
 
 - [ ] `git status --short` shows no secret or runtime file staged.
 - [ ] `setup_mcp.py --check` reports install complete and the connector entry in
@@ -537,11 +568,11 @@ WorkBuddy  --stdio-->  server.py  --Bearer-->  TokenHub submit/query
 
 ---
 
-## 12. Files in this repo
+## 11. Files in this repo
 
 | File | Role |
 |---|---|
-| `README.md` | **This file — canonical agent runbook** |
+| `README.md` | **This file — §0 student kickoff prompt + the canonical agent runbook** |
 | `AGENTS.md` | Extended reference, rationale, teacher notes |
 | `setup_mcp.py` | Stdlib-only one-command installer (`--install` / `--check` / `--verify-key` / `--uninstall`) |
 | `server.py` | MCP STDIO server, 5 tools, paid-job recovery |
